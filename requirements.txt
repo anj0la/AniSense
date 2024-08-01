@@ -7,3 +7,6 @@ pytest
 wheel
 emoji
 setuptools
+requests~=2.25.1
+bs4~=4.9.3
+beautifulsoup4~=4.9.3
