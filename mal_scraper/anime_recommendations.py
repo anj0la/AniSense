@@ -27,7 +27,7 @@ def clean_recs(recs):
     return cleaned_recs
 
 
-def getRecs(recs_url):
+def get_recs(recs_url):
     """
     Scrapes the user recommendation webpage for all recommendations and
     returns the cleaned recommendations in a list.
@@ -91,7 +91,7 @@ def get_anime_recs(anime_title, anime_url, save_csv=True, csv_dir='Data/Recommen
     """
 
     anime_url = anime_url + "/userrecs"
-    recs = getRecs(anime_url)
+    recs = get_recs(anime_url)
     recs_df = recs_to_dataframe(recs, anime_title, anime_url)
 
     # Saving the DataFrame

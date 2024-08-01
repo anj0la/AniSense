@@ -1,85 +1,97 @@
+"""
+File: top_anime_details.py
+
+Author: nikitperiwal
+Modidied By: anj0la
+Date Modified: July 31st, 2024
+
+This module contains methods to get the details of top animes from MyAnimeList.
+
+Source: 
+    - https://github.com/nikitperiwal/MAL-Scraper
+"""
 import os
 import time
 import requests
 import pandas as pd
 from bs4 import BeautifulSoup
+from requests.exceptions import RequestException
 
-
-def clean_side_panel(sidepanel):
+def clean_side_panel(side_panel: list) -> dict:
     """
-    Cleans the SidePanel data and stores it in a dict.
+    Cleans the SidePanel data and stores it in a dictionary.
 
-    Parameter:
-        sidepanel: html-sidepanel extracted using bs4
+    Parameters:
+        side_panel (list): The HTML elements of the side panel extracted using BeautifulSoup.
+        
     Returns:
-        data: dict of extracted data
+        dict: A dictionary of extracted data.
     """
-
     data = dict()
-    for x in sidepanel:
+    for x in side_panel:
         x = x.text.strip().replace('\n', '')
         index = x.find(':')
         if index == -1:
             continue
-        y, x = x[:index], x[index+1:].strip()
-        data[y] = x
+        key, value = x[:index], x[index+1:].strip()
+        data[key] = value
     return data
 
-
-def get_anime_detail(animelink):
+def get_anime_detail(anime_link: str) -> dict:
     """
-    Cleans the SidePanel data and stores it in a dict.
+    Fetches and cleans the details of a single anime from its webpage.
 
-    Parameter:
-        sidepanel: html-sidepanel extracted using bs4
+    Args:
+        anime_link (str): The URL of the anime's webpage.
+        
     Returns:
-        data: dict of extracted data
+        dict: A dictionary of extracted data.
     """
-
     try:
-        webpage = requests.get(animelink, timeout=10)
-    except requests.exceptions.RequestException as e:
-        print("Link: ", animelink)
-        print("Exception: ", e, "\n")
+        webpage = requests.get(anime_link, timeout=10)
+    except RequestException as e:
+        print('Link: ', anime_link)
+        print('Exception: ', e, '\n')
         return None
-    soup = BeautifulSoup(webpage.text, features="html.parser")
-    sidepanel = soup.find("td", {"class": "borderClass"}).find('div').findAll('div')[6:]
-    data = clean_side_panel(sidepanel)
-    data['Summary'] = soup.find("p", {"class": ""}).text
+    soup = BeautifulSoup(webpage.text, features='html.parser')
+    side_panel = soup.find('td', {'class': 'borderClass'}).find('div').findAll('div')[6:]
+    data = clean_side_panel(side_panel)
+    data['Summary'] = soup.find('p', {'class': ''}).text
     return data
 
-
-def clean_dataframe(df):
+def clean_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     """
     Cleans the DataFrame passed, to make the values more readable.
 
-    Parameter:
-        df: the dataframe to clean
+    Args:
+        df (pd.DataFrame): The DataFrame to clean.
+        
     Returns:
-        df: the cleaned dataframe
+        pd.DataFrame: The cleaned DataFrame.
     """
-    # Function to remove extra spaces from the cell inbetween items
-    def cleanDivide(cell):
+    
+    # function to remove extra spaces from the cell in between items
+    def clean_divide(cell: str) -> str:
         cell = cell.split(',')
         for i in range(len(cell)):
             cell[i] = cell[i].strip()
-        if cell[0] == "None found":
+        if cell[0] == 'None found':
             return ''
         return ", ".join(cell)
 
-    # Function to remove double entries from the cell.
-    def removeDouble(cell):
+    # function to remove double entries from the cell
+    def remove_double(cell: str) -> str:
         cell = cell.split(', ')
         for i in range(len(cell)):
             cell[i] = cell[i][:len(cell[i]) // 2]
-        return ", ".join(cell)
+        return ', '.join(cell)
 
-    # Cleaning up the dataframe
-    df['Genres'] = df['Genres'].apply(cleanDivide)
-    df['Genres'] = df['Genres'].apply(removeDouble)
-    df['Studios'] = df['Studios'].apply(cleanDivide)
-    df['Producers'] = df['Producers'].apply(cleanDivide)
-    df['Licensors'] = df['Licensors'].apply(cleanDivide)
+    # cleaning up the dataframe
+    df['Genres'] = df['Genres'].apply(clean_divide)
+    df['Genres'] = df['Genres'].apply(remove_double)
+    df['Studios'] = df['Studios'].apply(clean_divide)
+    df['Producers'] = df['Producers'].apply(clean_divide)
+    df['Licensors'] = df['Licensors'].apply(clean_divide)
     df['Score'] = df['Score'].apply(lambda x: x[:4])
     df['Ranked'] = df['Ranked'].apply(lambda x: x[1:-99])
     df['Members'] = df['Members'].str.replace(',', '')
@@ -89,61 +101,61 @@ def clean_dataframe(df):
     return df
 
 
-def dict_to_pandas(data_dict_list):
+def dict_to_pandas(data_dict_list: list) -> pd.DataFrame:
     """
-    Converts the passed list of dicts into a pandas DataFrame
-    and returns the cleaned DataFrame
+    Converts the passed list of dictionaries into a pandas DataFrame
+    and returns the cleaned DataFrame.
 
-    Parameter:
-        data_dict_list: list containing scraped data dicts.
+    Args:
+        data_dict_list (list): A list of dictionaries containing scraped data.
+        
     Returns:
-        the dataframe containing the scraped data as a table
+        pd.DataFrame: The DataFrame containing the scraped data as a table.
     """
-
     columns = ['Anime Title', 'MAL Url', 'English', 'Japanese', 'Type', 'Episodes',
                'Status', 'Aired', 'Premiered', 'Broadcast', 'Producers', 'Licensors',
                'Studios', 'Source', 'Genres', 'Duration', 'Rating', 'Score', 'Ranked',
                'Popularity', 'Members', 'Favorites', 'Summary']
-    alldata = list()
+    all_data = list()
 
     for curr in data_dict_list:
         data = []
         for y in columns:
             data.append(curr.get(y, ''))
-        alldata.append(data)
-    dataframe = pd.DataFrame(alldata, columns=columns)
-    return clean_dataframe(dataframe)
+        all_data.append(data)
+    df = pd.DataFrame(all_data, columns=columns)
+    return clean_dataframe(df)
 
 
-def get_all_anime_data(anime_df, save_csv=True, csv_dir='Data/', sleep_time=1):
+def get_all_anime_data(anime_df: pd.DataFrame, save_csv: bool = True, csv_dir: str = 'data/', sleep_time: int = 1) -> pd.DataFrame:
     """
-    Scrapes details of all anime in the DataFrame passed and
-    returns the scraped details as a pandas DataFrame.
-    Also, saves a csv file if 'save_csv' set to True.
+    Scrapes details of all anime in the DataFrame passed and returns the scraped details as a pandas DataFrame.
+    
+    If save_csv is set to True, it saves the dataframe to the specified csv directory.
 
-    Parameter:
-        anime_df: dataframe containing anime title, url
-        save_csv: Boolean, save the csv or not
-        csv_dir: the directory to save the csv file in
-        sleep_time: the time to sleep between each page request.
+    Args:
+        anime_df (pd.DataFrame): DataFrame containing anime titles and URLs.
+        save_csv (bool): Boolean, whether to save the DataFrame as a CSV file. Defaults to True.
+        csv_dir (str): The directory to save the CSV file in. Defaults to 'data/'.
+        sleep_time (int): The time to sleep between each page request in seconds. Defaults to 1.
+        
     Returns:
-        data: dict of extracted data
+        pd.DataFrame: The DataFrame containing the scraped anime data.
     """
-
-    alldata = list()
-    iterdata = zip(list(anime_df['MAL Link']), list(anime_df['Anime Title']))
-    for url, name in iterdata:
-        # Delays the program so that the website do not stop responding.
+    all_data = list()
+    iterative_data = zip(list(anime_df['MAL Link']), list(anime_df['Anime Title']))
+    for url, name in iterative_data:
+        # delays the program so that the website does not stop responding
         time.sleep(sleep_time)
         res = get_anime_detail(url)
         if res is None:
-            return alldata
+            return all_data
         else:
             res['Anime Title'] = name
             res['MAL Url'] = url
-            alldata.append(res)
+            all_data.append(res)
 
-    dataframe = dict_to_pandas(alldata)
+    dataframe = dict_to_pandas(all_data)
 
     # Saves the csv.
     if save_csv:

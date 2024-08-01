@@ -70,7 +70,7 @@ def get_anime_list_data(anime_list_link: str) -> list:
         anime_list_link (str): The link of the webpage.
         
     Returns:
-        cleaned_data (list): The cleaned data.
+        list: The cleaned data.
     """
     try:
         webpage = requests.get(anime_list_link, timeout=10)
@@ -133,7 +133,7 @@ def get_top_anime_data(num: int = 200, save_csv: bool = True, csv_dir: str = 'da
         csv_dir (str): The directory to save the csv file in. Defaults to data/.
         
     Returns:
-        dataframe (DataFrame): The pandas dataframe containing the scraped data.
+        pd.DataFrame: The pandas dataframe containing the scraped data.
     """
     anime_top_list_link = 'https://myanimelist.net/topanime.php?limit='
     anime_data = get_top_data(anime_top_list_link, num)
@@ -141,14 +141,14 @@ def get_top_anime_data(num: int = 200, save_csv: bool = True, csv_dir: str = 'da
     # creates the pandas DataFrame
     columns = ['Ranking', 'Anime Title', 'MAL Link', 'Airing Type and Episode',
                'Airing Time', 'No. of Members', 'MAL Score']
-    dataframe = pd.DataFrame(anime_data, columns=columns)
+    df = pd.DataFrame(anime_data, columns=columns)
 
     # saves the dataframe to csv
     if save_csv:
-        csv_filename = f'top_{num}_anime_mal.csv'
+        csv_file_name = f'top_{num}_anime_mal.csv'
         if not os.path.exists(csv_dir):
             os.mkdir(csv_dir)
-        fullname = os.path.join(csv_dir, csv_filename)
-        dataframe.to_csv(fullname, index=False)
+        full_name = os.path.join(csv_dir, csv_file_name)
+        df.to_csv(full_name, index=False)
 
-    return dataframe
+    return df
