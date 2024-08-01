@@ -1,0 +1,9 @@
+numpy
+torch
+pandas
+scikit-learn
+python-dotenv
+pytest
+wheel
+emoji
+setuptools
