@@ -1,3 +1,15 @@
+"""
+File: anime_reviews.py
+
+Author: nikitperiwal
+Modidied By: anj0la
+Date Modified: August 2nd, 2024
+
+This module contains methods to get anime reviews from MyAnimeList.
+
+Source: 
+    - https://github.com/nikitperiwal/MAL-Scraper
+"""
 import os
 import re
 import requests
@@ -5,24 +17,23 @@ import pandas as pd
 from bs4 import BeautifulSoup
 
 
-def clean_review(review):
+def clean_review(review: str) -> dict:
     """
-    Cleans the html source containing the review and
-    returns a dictionary containing the review elements.
+    Cleans the html source containing the review,
+    returning a dictionary containing the review elements.
 
-    Parameter:
-        review: html-review extracted using bs4
+    Args:
+        review (str): The HTML dource containing review elements. 
     Returns:
-        review_items: dict of extracted review items
+        dict: The extracted review items, stored as a dictionary.
     """
-
     cleaned_review = list()
     for x in review.findAll(text=True):
         x = x.replace('\n', '').strip()
-        if len(x) != 0 and x != "Preliminary":
+        if len(x) != 0 and x != 'Preliminary':
             cleaned_review.append(x)
 
-    # Inserts the cleaned review into a dict.
+    # inserts the cleaned review into a dict
     review_items = dict()
     review_items['Review Date'] = cleaned_review[0]
     review_items['Episodes Watched'] = cleaned_review[1]
@@ -38,123 +49,120 @@ def clean_review(review):
     return review_items
 
 
-def get_all_reviews(review_link):
+def get_all_reviews(review_link: str) -> list:
     """
-    Scrapes the review webpage for all reviews and
-    returns the cleaned reviews in a list.
+    Scrapes the review webpage for all reviews, returning the cleaned reviews in a list.
 
-    Parameter:
-        review_link: link of the page to scrape reviews from
+    Args:
+        review_link (str): The link of the page to scrape reviews from.
     Returns:
-        allreviews: list of all reviews data
+        list: A list containing all reviews data.
     """
-
     try:
         webpage = requests.get(review_link, timeout=10)
     except requests.exceptions.RequestException as e:
-        print("Link: ", review_link)
-        print("Exception: ", e, "\n")
+        print('Link: ', review_link)
+        print('Exception: ', e, '\n')
         return None
-    soup = BeautifulSoup(webpage.text, features="html.parser")
-    reviews = soup.findAll('div', {"class": "borderDark"})
+    soup = BeautifulSoup(webpage.text, features='html.parser')
+    reviews = soup.findAll('div', {'class': 'borderDark'})
 
-    # Collecting all reviews in a list, after cleaning.
-    allreviews = list()
+    # collecting all reviews in a list after cleaning
+    all_reviews = list()
     for review in reviews:
-        allreviews.append(clean_review(review))
-    return allreviews
+        all_reviews.append(clean_review(review))
+    return all_reviews
 
 
-def reviews_to_dataframe(review_list, anime_title, anime_url):
+def reviews_to_dataframe(review_list: list, anime_title: str, anime_url: str) -> pd.DataFrame:
     """
     Converts the passed review_list into a pandas DataFrame.
 
-    Parameter:
-        review_list: list of anime reviews
-        anime_title: the title of the anime
-        anime_url: the url of the anime
+    Args:
+        review_list (list): The list of anime reviews.
+        anime_title (str): The title of the anime.
+        anime_url (str): The url of the anime.
+    
     Returns:
-        dataframe: pandas DataFrame containing all reviews
+        pd.DataFrame: The DataFrame containing all reviews.
     """
-
     columns = ['Review Date', 'Episodes Watched', 'Username', 'Review Likes',
                'Overall Rating', 'Story Rating', 'Animation Rating', 'Sound Rating',
                'Character Rating', 'Enjoyment Rating', 'Review']
-    alldata = list()
+    all_data = list()
     for curr in review_list:
         data = []
         for y in columns:
             data.append(curr.get(y, ''))
-        alldata.append(data)
+        all_data.append(data)
 
-    # Creating dataFrame
-    dataframe = pd.DataFrame(alldata, columns=columns)
-    dataframe['Anime Title'] = anime_title
-    dataframe['Anime URL'] = anime_url
+    # creating the DataFrame
+    df = pd.DataFrame(all_data, columns=columns)
+    df['Anime Title'] = anime_title
+    df['Anime URL'] = anime_url
     columns = ['Anime Title', 'Anime URL']+columns
-    dataframe = dataframe[columns]
-    return dataframe
+    df = df[columns]
+    return df
 
 
-def get_anime_review(anime_title, anime_url, save_csv=True, csv_dir='Data/Reviews/'):
+def get_anime_review(anime_title: str, anime_url: str, save_csv: bool = True, csv_dir: str = 'data/reviews/') -> pd.DataFrame:
     """
-    Get Reviews from an Anime whose details is passed,
-    Stores the reviews in a pandas DataFrame and returns it.
-    Also, saves the dataFrame as a csv file if save_csv=True.
+    Gets a review from the specified anime title and url, storing the review in a pandas DataFrame.
+    It saves the DataFrame as a csv file if save_csv is True, and returns the DataFrame.
 
-    Parameter:
-        anime_title: the title of the anime
-        anime_url: the url of the anime
-        save_csv: Boolean, save the csv or not.
-        csv_dir: directory to store the csv file in.
+    Args:
+        anime_title (str): The title of the anime.
+        anime_url (str): The url of the anime.
+        save_csv (bool): Determines whether to save the DataFrame as a CSV file. Defaults to True.
+        csv_dir (str): The directory to save the CSV file in. Defaults to 'data/recommendation/'.
+    
     Returns:
-        reviews_df: pandas DataFrame containing all reviews for the anime
+        pd.DataFrame: The DataFrame containing recommendations for the anime.
     """
-
-    anime_url = anime_url + "/reviews"
+    anime_url = anime_url + '/reviews'
     reviews = get_all_reviews(anime_url)
-    reviews_df = reviews_to_dataframe(reviews, anime_title, anime_url)
+    df = reviews_to_dataframe(reviews, anime_title, anime_url)
 
-    # Saving the DataFrame
+    # saving the DataFrame
     if save_csv:
         if not os.path.exists(csv_dir):
             os.mkdir(csv_dir)
         anime_title = re.sub(r'[^a-zA-Z0-9]', '', anime_title)
-        csv_filename = f'Anime Review - {anime_title}.csv'
-        fullname = os.path.join(csv_dir, csv_filename)
-        reviews_df.to_csv(fullname, index=False)
-    return reviews_df
+        csv_filename = f'anime_review_{anime_title}.csv'
+        full_name = os.path.join(csv_dir, csv_filename)
+        df.to_csv(full_name, index=False)
+    return df
 
 
-def get_all_anime_reviews(anime_df, save_csv=True, save_individual=False, csv_dir='Data/'):
+def get_all_anime_reviews(anime_df: pd.DataFrame, save_csv: bool = True, save_individual: bool = False, csv_dir: str = 'data/') -> pd.DataFrame:
     """
-    Get Reviews from all Anime in the dataFrame passed,
-    Stores all reviews in a pandas DataFrame and returns it.
-    Also, saves the dataFrame as a csv file if save_csv=True.
+    Gets reviews from all anime in the passed DataFrame, storing and returning the DataFrame.
+    It saves the DataFrame as a csv file if save_csv is True.
 
-    Parameter:
-        anime_df: dataFrame containing all anime details
-        save_csv: Boolean, save the csv or not.
-        save_individual: Boolean, save the individual anime reviews as csv or not.
+    Args:
+        anime_df (pd.DataFrame): The DataFrame containing anime titles and URLs.
         csv_dir: directory to store the csv file in.
+        save_csv (bool): Determines whether to save the DataFrame as a CSV file. Defaults to True.
+        save_individual (bool): Determines whether to save the individual anime recommendation as csv or not. Defaults to False.
+        csv_dir (str): The directory to save the CSV file in. Defaults to 'data/'.
+    
     Returns:
-        anime_dataframe: pandas DataFrame containing reviews for all anime
+        pd.DataFrame: The DataFrame containing recommendations for all anime.
     """
-
-    iterdata = zip(list(anime_df['Anime Title']), list(anime_df['MAL Link']))
-    anime_dataframe = None
-    for title, url in iterdata:
-        if anime_dataframe is None:
-            anime_dataframe = get_anime_review(title, url, save_csv=save_individual)
+    iter_data = zip(list(anime_df['Anime Title']), list(anime_df['MAL Link']))
+    df = None
+    for title, url in iter_data:
+        if df is None:
+            df = get_anime_review(title, url, save_csv=save_individual)
         else:
-            anime_dataframe = anime_dataframe.append(get_anime_review(title, url, save_csv=save_individual))
+            df = df.append(get_anime_review(title, url, save_csv=save_individual))
 
-    # Saving the DataFrame
+    # saving the DataFrame
     if save_csv:
         if not os.path.exists(csv_dir):
             os.mkdir(csv_dir)
-        csv_filename = f'MAL Anime Reviews.csv'
-        fullname = os.path.join(csv_dir, csv_filename)
-        anime_dataframe.to_csv(fullname, index=False)
+        csv_filename = f'anime_reviews_mal.csv'
+        full_name = os.path.join(csv_dir, csv_filename)
+        df.to_csv(full_name, index=False)
 
-    return anime_dataframe
+    return df

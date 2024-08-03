@@ -21,7 +21,7 @@ def clean_side_panel(side_panel: list) -> dict:
     """
     Cleans the SidePanel data and stores it in a dictionary.
 
-    Parameters:
+    Args:
         side_panel (list): The HTML elements of the side panel extracted using BeautifulSoup.
         
     Returns:
@@ -134,8 +134,8 @@ def get_all_anime_data(anime_df: pd.DataFrame, save_csv: bool = True, csv_dir: s
     If save_csv is set to True, it saves the dataframe to the specified csv directory.
 
     Args:
-        anime_df (pd.DataFrame): DataFrame containing anime titles and URLs.
-        save_csv (bool): Boolean, whether to save the DataFrame as a CSV file. Defaults to True.
+        anime_df (pd.DataFrame): The DataFrame containing anime titles and URLs.
+        save_csv (bool): Determines whether to save the DataFrame as a CSV file. Defaults to True.
         csv_dir (str): The directory to save the CSV file in. Defaults to 'data/'.
         sleep_time (int): The time to sleep between each page request in seconds. Defaults to 1.
         
@@ -155,14 +155,14 @@ def get_all_anime_data(anime_df: pd.DataFrame, save_csv: bool = True, csv_dir: s
             res['MAL Url'] = url
             all_data.append(res)
 
-    dataframe = dict_to_pandas(all_data)
+    df = dict_to_pandas(all_data)
 
     # Saves the csv.
     if save_csv:
-        csv_filename = f'{len(anime_df)} Anime Details MAL.csv'
+        csv_filename = f'{len(anime_df)}_anime_details_mal.csv'
         if not os.path.exists(csv_dir):
             os.mkdir(csv_dir)
-        fullname = os.path.join(csv_dir, csv_filename)
-        dataframe.to_csv(fullname, index=False)
+        full_name = os.path.join(csv_dir, csv_filename)
+        df.to_csv(full_name, index=False)
 
-    return dataframe
+    return df

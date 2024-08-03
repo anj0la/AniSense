@@ -10,7 +10,6 @@ This module contains methods to get the top anime list from MyAnimeList.
 Source: 
     - https://github.com/nikitperiwal/MAL-Scraper
 """
-
 import os
 import requests
 import pandas as pd
@@ -104,7 +103,7 @@ def get_top_data(anime_top_list_link: str, top_num: int = 200) -> list:
     # threading to speed up the scraping process and collecting all threads in a list
     future_list = list()
     with ThreadPoolExecutor(max_workers=20) as executor:
-        for i in range(start = 0, stop = top_num, step = 50):
+        for i in range(0, top_num, 50):
             list_link = anime_top_list_link + str(i)
             future_list.append(executor.submit(get_anime_list_data, list_link))
 
