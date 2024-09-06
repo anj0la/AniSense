@@ -97,4 +97,4 @@ class SentimentLSTM(nn.Module):
         return output
     
 # Seeing the model layers
-print(SentimentLSTM(1000))
+# print(SentimentLSTM(1000))

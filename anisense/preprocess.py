@@ -33,7 +33,7 @@ def save_to_csv(cleaned_text: list[str], labels: list[str], file_path: str) -> N
     rows = []
     for sentence, label in zip(cleaned_text, labels):
         rows.append({'text': sentence, 'label': label})
-    with open(file_path, 'w') as csv_file:
+    with open(file=file_path, mode='w', encoding='utf-8') as csv_file:
         writer = csv.DictWriter(csv_file, fieldnames=fields)
         writer.writeheader()
         writer.writerows(rows)
@@ -89,6 +89,37 @@ def encode_tokens(tokenized_data: list[list[str]], vocab: dict) -> list[list[int
         list[list[int]]: The encoded token vectors.
     """
     return [_encode_token(tokenized_sentence, vocab) for tokenized_sentence in tokenized_data]
+
+def encode_labels(labels: list[str]) -> list[int]:
+    """
+    Encodes string labels into their integer counterparts.
+    
+    The 'positive' label maps to 0, the 'negative' label maps to 1, and the 'neutral' label maps to 2.
+        
+    Args:
+        labels (list[str]): The list of labels. 
+        
+    Returns:
+        list[int]: The encoded list of labels.
+    """
+    encoded_labels = []
+    for i in range(len(labels)):
+        if labels[i] == 'positive':
+            encoded_labels.append(0)
+        elif labels[i] == 'negative':
+            encoded_labels.append(1)
+        else: # labels[i] == 'neutral
+            encoded_labels.append(2)
+    return encoded_labels
+
+def prepare_input(sequences, labels, vocab):
+    # Encode tokenized data
+    encoded_sequences = encode_tokens(sequences, vocab)
+    
+    # Enocde labels (positive = 0, negative = 1, neutral = 2)
+    encoded_labels = encode_labels(labels)
+    
+    return encoded_sequences, encoded_labels
 
 def get_labels(df: pd.DataFrame) -> list[str]:
     """
@@ -148,18 +179,18 @@ def preprocess(file_path: str) -> list[str]:
     # Remove stop words and apply lemmatization
     stop_words = set(stopwords.words('english'))
     data = data.apply(lambda sentence: ' '.join(word for word in sentence.split() if word not in stop_words))
-    #data = data.apply(lambda sentence: lemmatize_text(sentence))
+    data = data.apply(lambda sentence: lemmatize_text(sentence))
     
     # Extract labels
     labels = get_labels(df)
             
     return data.values, labels
     
-# Testing purposes
-preprocessed_data, labels = preprocess('data/reviews.csv')
+# Running the code
+""" preprocessed_data, labels = preprocess('data/reviews.csv')
 tokenized_data, vocab = tokenize_data(cleaned_data=preprocessed_data)
 
 print(f'Data: {preprocessed_data[:5]}, Labels: {labels[:5]}')
 
 save_to_csv(preprocessed_data, labels, 'data/cleaned_reviews.csv')
-save_vocabulary(vocab=vocab, path='data/vocab.json')
+save_vocabulary(vocab=vocab, path='data/vocab.json') """

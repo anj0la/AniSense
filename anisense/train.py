@@ -17,7 +17,7 @@ from torch import optim
 from torch.utils.data import DataLoader, random_split
 from anisense.dataset import AnimeReviewDataset
 from anisense.model import SentimentLSTM
-from anisense.preprocess import encode_tokens, load_vocabulary
+from anisense.preprocess import load_vocabulary, prepare_input
 
 def custom_accuracy_score(y_true, y_pred):
     """
@@ -76,14 +76,19 @@ def collate_batch(batch: tuple[list[int], int, int]) -> tuple[torch.Tensor, torc
               of the sequences.
     """
     sequences, labels, lengths = zip(*batch)
-    sequences = [torch.tensor(seq, dtype=torch.long) for seq in sequences]
-    labels = torch.tensor(labels, dtype=torch.long)
+    
+    # Encoding the sequences and labels
+    encoded_sequences, encoded_labels = prepare_input(sequences, labels, vocab=load_vocabulary(path='data/vocab.json'))
+
+    # Converting the encoded sequences, labels and sequence length to Tensors
+    encoded_sequences = [torch.tensor(seq, dtype=torch.long) for seq in encoded_sequences]
+    encoded_labels = torch.tensor(encoded_labels, dtype=torch.long)
     lengths = torch.tensor(lengths, dtype=torch.long)
     
     # Padding sequences
-    padded_sequences = nn.utils.rnn.pad_sequence(sequences, batch_first=True, padding_value=0)
+    padded_encoded_sequences = nn.utils.rnn.pad_sequence(encoded_sequences, batch_first=True, padding_value=0)
     
-    return padded_sequences, labels, lengths
+    return padded_encoded_sequences, encoded_labels, lengths
 
 def create_dataloaders(file_path: str, batch_size: int = 64, train_split: float = 0.8) -> tuple[DataLoader, DataLoader]:
     """
@@ -261,9 +266,11 @@ def run_gradient_descent(model: SentimentLSTM, train_iterator: DataLoader, test_
         print(f'\t Valid Loss: {test_loss:.3f} | Valid Acc: {test_accurary * 100:.2f}%')
 
 ##### Running the code #####
-
+print('\n\nRunning train.py!\n\n')
 # Get the training and testing dataloaders
 train_dataloader, test_dataloader = create_dataloaders(file_path='data/cleaned_reviews.csv')
+print(train_dataloader)
+print(test_dataloader)
 
 # Get the GPU device (if it exists)
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -276,4 +283,4 @@ model = SentimentLSTM(vocab_size=len(vocab)).to(device)
 print(model)
 
 # Run Gradient Descent
-run_gradient_descent(model=model, train_iterator=train_dataloader, test_iterator=test_dataloader, device=device)
+# run_gradient_descent(model=model, train_iterator=train_dataloader, test_iterator=test_dataloader, device=device)
