@@ -283,4 +283,4 @@ model = SentimentLSTM(vocab_size=len(vocab)).to(device)
 print(model)
 
 # Run Gradient Descent
-# run_gradient_descent(model=model, train_iterator=train_dataloader, test_iterator=test_dataloader, device=device)
+run_gradient_descent(model=model, train_iterator=train_dataloader, test_iterator=test_dataloader, device=device)

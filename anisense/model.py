@@ -2,7 +2,7 @@
 File: model.py
 
 Author: Anjola Aina
-Date Modified: September 5th, 2024
+Date Modified: September 6th, 2024
 
 This module defines an LSTM-based model for sentiment analysis using PyTorch.
 
@@ -13,7 +13,7 @@ The model has the following structure, given the vocabulary size is 1000 with al
     (mlp): ModuleList(
         (0): Linear(in_features=256, out_features=128, bias=True)
         (1): Linear(in_features=128, out_features=64, bias=True)
-        (2): Linear(in_features=64, out_features=2, bias=True)
+        (2): Linear(in_features=64, out_features=3, bias=True)
     )
     (relu): ReLU()
     (dropout): Dropout(p=0.2, inplace=False)
@@ -37,7 +37,7 @@ class SentimentLSTM(nn.Module):
         batch_first (bool): If True, then the input and output tensors are provided as (batch, seq, feature). Default is True.
         bidirectional (bool): If True, becomes a bidirectional LSTM. Default is True.
     """
-    def __init__(self, vocab_size: int, embedding_dim: int = 64, lstm_hidden_dim: int = 256, num_lstm_layers: int = 2, hidden_dims: list[int] = [256, 128, 64], output_dim: int = 2, dropout: int = 0.2, batch_first: bool = True, bidirectional = True):
+    def __init__(self, vocab_size: int, embedding_dim: int = 64, lstm_hidden_dim: int = 256, num_lstm_layers: int = 2, hidden_dims: list[int] = [256, 128, 64], output_dim: int = 3, dropout: int = 0.2, batch_first: bool = True, bidirectional = True):
         super(SentimentLSTM, self).__init__()
         
         # Embedding layer
