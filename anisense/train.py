@@ -19,39 +19,9 @@ from anisense.dataset import AnimeReviewDataset
 from anisense.model import SentimentLSTM
 from anisense.preprocess import load_vocabulary, prepare_input
 
-def custom_accuracy_score(y_true, y_pred):
-    """
-    Calculate the accuracy score for multiclass and multiclass-multioutput targets.
-    
-    Parameters:
-    y_true (array-like): Ground truth (correct) labels.
-    y_pred (array-like): Predicted labels, as returned by a classifier.
-    
-    Returns:
-    float: Accuracy score.
-    """
-    # Convert inputs to numpy arrays for easier manipulation
-    y_true = np.array(y_true)
-    y_pred = np.array(y_pred)
-    
-    # Check if the dimensions of the inputs match
-    if y_true.shape != y_pred.shape:
-        raise ValueError("Shape of y_true and y_pred do not match.")
-    
-    # If y_true and y_pred are 1D arrays (simple multiclass classification)
-    if y_true.ndim == 1:
-        correct_predictions = (y_true == y_pred).sum()
-        accuracy = correct_predictions / y_true.shape[0]
-    
-    # If y_true and y_pred are 2D arrays (multiclass-multioutput classification)
-    elif y_true.ndim == 2:
-        correct_predictions = (y_true == y_pred).all(axis=1).sum()
-        accuracy = correct_predictions / y_true.shape[0]
-    
-    else:
-        raise ValueError("Input arrays must be 1D or 2D.")
-    
-    return accuracy
+def accuracy_score(y_true, y_pred):
+    classes = torch.argmax(y_pred, dim=1)
+    return torch.mean((classes == y_true).float())
 
 def collate_batch(batch: tuple[list[int], int, int]) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """
@@ -159,14 +129,13 @@ def train(model: SentimentLSTM, iterator: DataLoader, optimizer: optim.SGD, devi
         predicted_classes = torch.argmax(predictions, dim=1).type(torch.LongTensor)
     
         # print('labels: ', labels)
-        # print('predictions: ', predictions)
-        # print('predicted classes: ', predicted_classes)
+        print('predictions: ', predictions)
                 
         # Compute the loss
         loss = F.cross_entropy(predictions, labels)        
         
         # Compute metrics 
-        accuracy = custom_accuracy_score(y_true=labels.cpu().detach().numpy(), y_pred=predicted_classes.cpu().detach().numpy())   
+        accuracy = accuracy_score(y_true=labels.cpu().detach().numpy(), y_pred=predicted_classes.cpu().detach().numpy()) 
         
         # Backpropagate the loss and compute the gradients
         loss.backward()       
@@ -207,20 +176,19 @@ def evaluate(model: SentimentLSTM, iterator: DataLoader, device: torch.device) -
             # Get the padded sequences, labels and lengths from batch 
             padded_sequences, labels, lengths = batch
                         
-            # Move input and expected label to GPU
+            # Move sequences, expected labels and lengths to GPU
             padded_sequences = padded_sequences.to(device)
             labels = labels.to(device)
             lengths = lengths.to(device)
             
              # Get expected predictions
             predictions = model(padded_sequences, lengths).squeeze()
-            predicted_classes = torch.argmax(predictions, dim=1).type(torch.LongTensor)
             
             # Compute the loss
             loss = F.cross_entropy(predictions, labels)        
             
             # Compute metrics 
-            accuracy = custom_accuracy_score(y_true=labels.cpu(), y_pred=predicted_classes.cpu())
+            accuracy = accuracy_score(y_true=labels.cpu(), y_pred=predictions.cpu())
             
             # Keep track of metrics
             epoch_loss += loss.item()
