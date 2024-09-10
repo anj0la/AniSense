@@ -32,12 +32,12 @@ class SentimentLSTM(nn.Module):
         lstm_hidden_dim (int): The number of features in the hidden state of the LSTM. Default is 256.
         num_lstm_layers (int): The number of recurrent layers in the LSTM. Default is 2.
         hidden_dims (list[int]): The number of hidden states in the multi-layer perceptron. The first value should be equal to the lstm_hidden_dim if the LSTM is bidirectional, otherwise, halve it. Default is [256, 128, 64].
-        output_dim (int): The size of the output layer. Default is 2.
+        output_dim (int): The size of the output layer. Default is 1.
         dropout (float): The dropout probability. Default is 0.2.
         batch_first (bool): If True, then the input and output tensors are provided as (batch, seq, feature). Default is True.
         bidirectional (bool): If True, becomes a bidirectional LSTM. Default is True.
     """
-    def __init__(self, vocab_size: int, embedding_dim: int = 64, lstm_hidden_dim: int = 256, num_lstm_layers: int = 2, hidden_dims: list[int] = [256, 128, 64], output_dim: int = 3, dropout: int = 0.2, batch_first: bool = True, bidirectional = True):
+    def __init__(self, vocab_size: int, embedding_dim: int = 64, lstm_hidden_dim: int = 256, num_lstm_layers: int = 2, hidden_dims: list[int] = [256, 128, 64], output_dim: int = 1, dropout: int = 0.2, batch_first: bool = True, bidirectional = True):
         super(SentimentLSTM, self).__init__()
         
         # Embedding layer

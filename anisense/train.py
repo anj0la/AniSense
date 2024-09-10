@@ -15,9 +15,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch import optim
 from torch.utils.data import DataLoader, random_split
-from anisense.dataset import AnimeReviewDataset
 from anisense.model import SentimentLSTM
-from anisense.preprocess import load_vocabulary, prepare_input
+from anisense.dataset import AnimeReviewDataset
+from sklearn.feature_extraction.text import TfidfVectorizer
 
 def accuracy_score(y_true, y_pred):
     classes = torch.argmax(y_pred, dim=1)
@@ -46,10 +46,7 @@ def collate_batch(batch: tuple[list[int], int, int]) -> tuple[torch.Tensor, torc
               of the sequences.
     """
     sequences, labels, lengths = zip(*batch)
-    
-    # Encoding the sequences and labels
-    encoded_sequences, encoded_labels = prepare_input(sequences, labels, vocab=load_vocabulary(path='data/vocab.json'))
-
+        
     # Converting the encoded sequences, labels and sequence length to Tensors
     encoded_sequences = [torch.tensor(seq, dtype=torch.long) for seq in encoded_sequences]
     encoded_labels = torch.tensor(encoded_labels, dtype=torch.long)
@@ -76,6 +73,16 @@ def create_dataloaders(file_path: str, batch_size: int = 64, train_split: float 
     """
     # Create the custom dataset
     dataset = AnimeReviewDataset(file_path)
+    
+    # Open the cleaned dataset (not tokenized)
+    df = pd.read_csv('data/cleaned_reviews.csv')
+    cleaned_text = df['text']
+
+    # Learn the vocabulary from the text data and transforms the text into feature vectors based on the learned vocabulary.
+    vectorizer = TfidfVectorizer()
+    transformed_text = vectorizer.fit_transform(cleaned_text)
+    len_vocab = len(vectorizer.vocabulary_)
+
 
     # Split the dataset into training and testing sets
     train_size = int(train_split * len(dataset))
@@ -126,7 +133,6 @@ def train(model: SentimentLSTM, iterator: DataLoader, optimizer: optim.SGD, devi
                 
         # Get expected predictions
         predictions = model(padded_sequences, lengths).squeeze()
-        predicted_classes = torch.argmax(predictions, dim=1).type(torch.LongTensor)
     
         # print('labels: ', labels)
         print('predictions: ', predictions)
@@ -234,7 +240,19 @@ def run_gradient_descent(model: SentimentLSTM, train_iterator: DataLoader, test_
         print(f'\t Valid Loss: {test_loss:.3f} | Valid Acc: {test_accurary * 100:.2f}%')
 
 ##### Running the code #####
-print('\n\nRunning train.py!\n\n')
+
+# Open the cleaned dataset (not tokenized)
+""" df = pd.read_csv('data/cleaned_reviews.csv')
+cleaned_text = df['text']
+
+# Learn the vocabulary from the text data and transforms the text into feature vectors based on the learned vocabulary.
+vectorizer = TfidfVectorizer()
+vectorizer.fit(cleaned_text)
+len_vocab = len(vectorizer.vocabulary_) """
+
+# Create the dataloaders
+    
+""" print('\n\nRunning train.py!\n\n')
 # Get the training and testing dataloaders
 train_dataloader, test_dataloader = create_dataloaders(file_path='data/cleaned_reviews.csv')
 print(train_dataloader)
@@ -251,4 +269,4 @@ model = SentimentLSTM(vocab_size=len(vocab)).to(device)
 print(model)
 
 # Run Gradient Descent
-run_gradient_descent(model=model, train_iterator=train_dataloader, test_iterator=test_dataloader, device=device)
+run_gradient_descent(model=model, train_iterator=train_dataloader, test_iterator=test_dataloader, device=device) """

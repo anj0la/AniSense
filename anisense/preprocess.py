@@ -57,10 +57,13 @@ def tokenize_data(cleaned_data: list[str]) -> tuple[list[list[str]], dict[str, i
     """
     tokenized_data = []
     for sentence in cleaned_data:
-        tokenized_data.extend([word_tokenize(term) for term in sent_tokenize(sentence)])
+        tokenized_sentence = [word_tokenize(term) for term in sent_tokenize(sentence)]
+        # filtered_sentence = [[word for word in sentence if word.strip()] for sentence in tokenized_sentence]
+        tokenized_data.extend(tokenized_sentence)
             
     all_tokens = [token for sentence in tokenized_data for token in sentence]
     vocab = {token: idx for idx, token in enumerate(set(all_tokens))}
+    # vocab['<UNK>'] = len(vocab) + 1
             
     return tokenized_data, vocab
 
@@ -75,7 +78,7 @@ def _encode_token(tokenized_sentence: list[str], vocab: dict) -> list[int]:
     Returns:
         list[int]: The encoded token vector.
     """
-    return [vocab[token] for token in tokenized_sentence]
+    return [vocab.get(token) for token in tokenized_sentence]
         
 def encode_tokens(tokenized_data: list[list[str]], vocab: dict) -> list[list[int]]:
     """
@@ -112,11 +115,11 @@ def encode_labels(labels: list[str]) -> list[int]:
             encoded_labels.append(2)
     return encoded_labels
 
-def prepare_input(sequences, labels, vocab):
+def prepare_input(tokenized_data, labels, vocab):
     # Encode tokenized data
-    encoded_sequences = encode_tokens(sequences, vocab)
+    encoded_sequences = encode_tokens(tokenized_data, vocab)
     
-    # Enocde labels (positive = 0, negative = 1, neutral = 2)
+    # Encode labels (positive = 0, negative = 1, neutral = 2)
     encoded_labels = encode_labels(labels)
     
     return encoded_sequences, encoded_labels
@@ -190,7 +193,21 @@ def preprocess(file_path: str) -> list[str]:
 """ preprocessed_data, labels = preprocess('data/reviews.csv')
 tokenized_data, vocab = tokenize_data(cleaned_data=preprocessed_data)
 
-print(f'Data: {preprocessed_data[:5]}, Labels: {labels[:5]}')
+#print(f'Data: {preprocessed_data[:5]}, Labels: {labels[:5]}')
 
-save_to_csv(preprocessed_data, labels, 'data/cleaned_reviews.csv')
-save_vocabulary(vocab=vocab, path='data/vocab.json') """
+#save_to_csv(preprocessed_data, labels, 'data/cleaned_reviews.csv')
+#save_vocabulary(vocab=vocab, path='data/vocab.json')
+
+#vocab = load_vocabulary(path='data/vocab.json')
+#df = pd.read_csv('data/cleaned_reviews.csv')
+#tokenized_data = df['text'].values
+#labels = df['label']
+
+encoded_sequences, encoded_labels = prepare_input(tokenized_data, labels, vocab)
+
+print('\n\n\n################################ TESTING ENCODING FUNCTION ################################\n\n\n')
+print('Tokenized data: ', tokenized_data[:1])
+print('Encoded data: ', encoded_sequences[:1])
+print('Encoded labels: ', encoded_labels[:1])
+
+print('Testing: ', vocab.get('story')) """
