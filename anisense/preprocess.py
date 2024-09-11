@@ -102,7 +102,7 @@ def preprocess(file_path: str, output_file_path: str) -> None:
     save_to_csv(data.values, labels, output_file_path)
     
 # Running the code
-preprocess(file_path='data/reviews.csv', output_file_path='data/cleaned_reviews.csv')
+# preprocess(file_path='data/reviews.csv', output_file_path='data/cleaned_reviews.csv')
 # save_to_csv(preprocessed_data, labels, 'data/cleaned_reviews.csv')
 
 """ preprocessed_data, labels = preprocess('data/reviews.csv')

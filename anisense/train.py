@@ -8,16 +8,15 @@ This file contains all the necessary functions used to train the model.
 Only run this file if you want to add more training examples to improve the performance of the model.
 Otherwise, use the pretrained model in the 'models' folder, called model_saved_weights.pt.
 """
-import numpy as np
+import os
 import torch
-import pandas as pd
 import torch.nn as nn
 import torch.nn.functional as F
 from torch import optim
 from torch.utils.data import DataLoader, random_split
 from anisense.model import SentimentLSTM
 from anisense.dataset import AnimeReviewDataset
-from sklearn.feature_extraction.text import TfidfVectorizer
+from anisense.preprocess import preprocess
 
 def accuracy_score(y_true, y_pred):
     classes = torch.argmax(y_pred, dim=1)
@@ -196,7 +195,7 @@ def evaluate_one_epoch(model: SentimentLSTM, iterator: DataLoader, device: torch
         
         
 def run_gradient_descent(model: SentimentLSTM, train_iterator: DataLoader, test_iterator: DataLoader, device: torch.device, n_epochs: int = 10, 
-               lr: float = 0.01, weight_decay: float = 0.0, model_save_path: str = 'model/model_saved_weights.pt') -> None:
+               lr: float = 0.01, weight_decay: float = 0.0, model_save_path: str = 'model/saved_model.pt') -> None:
     """
     Train the model for multiple epochs and evaluate on the validation set.
 
@@ -207,7 +206,7 @@ def run_gradient_descent(model: SentimentLSTM, train_iterator: DataLoader, test_
         n_epochs (int, optional): The number of epochs to train the model. Defaults to 5.
         lr (float, optional): The learning rate for the optimizer. Defaults to 0.01.
         weight_decay (float, optional): The weight decay for regularization. Defaults to 0.00.
-        model_save_path (str, optional): The path to save the best model's weights. Defaults to 'model/model_saved_weights.pt'.
+        model_save_path (str, optional): The path to save the best model's weights. Defaults to 'model/saved_model.pt'.
     """
     best_test_loss = float('inf')
     optimizer = optim.SGD(params=model.parameters(), lr=lr, weight_decay=weight_decay)
@@ -230,26 +229,30 @@ def run_gradient_descent(model: SentimentLSTM, train_iterator: DataLoader, test_
         print(f'\t Train Loss: {train_loss:.3f} | Train Acc: {train_accurary * 100:.2f}%')
         print(f'\t Valid Loss: {test_loss:.3f} | Valid Acc: {test_accurary * 100:.2f}%')
         
-def train(file_path: str, train_split: int = 0.8, batch_size: int = 2) -> None:
+def train(input_file_path: str, cleaned_file_path: str, train_ratio: int = 0.8, batch_size: int = 64) -> None:
     """
     Trains a LSTM model used for sentiment analysis.
 
     Args:
         file_path (str): The path to the cleaned reviews.
         train_split (int, optional): The proportion of the dataset to include in the train split. Defaults to 0.8.
-        batch_size (int, optional): The batch size for each batch. Defaults to 2.
+        batch_size (int, optional): The batch size for each batch. Defaults to 64.
     """
+    # Preprocess the file (if not already preprocessed)
+    if not os.path.exists(cleaned_file_path):
+        preprocess(file_path=input_file_path, output_file_path=cleaned_file_path)
+    
     # Create the custom dataset
-    dataset = AnimeReviewDataset(file_path)
+    dataset = AnimeReviewDataset(cleaned_file_path)
     
     # Split the dataset into training and testing sets
-    train_size = int(train_split * len(dataset))
+    train_size = int(train_ratio * len(dataset))
     test_size = len(dataset) - train_size
     train_dataset, test_dataset = random_split(dataset, [train_size, test_size])
 
     # Create dataloaders for the training and testing sets
     train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, collate_fn=collate_batch)
-    test_dataloader = DataLoader(test_dataset, batch_size=batch_size, shuffle=True, collate_fn=collate_batch)
+    test_dataloader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, collate_fn=collate_batch)
     
     # Get the GPU device (if it exists)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -264,7 +267,7 @@ def train(file_path: str, train_split: int = 0.8, batch_size: int = 2) -> None:
 
 ##### Running the code #####
 
-train('data/test.csv')
+train(input_file_path='data/reviews.csv', cleaned_file_path='data/cleaned_reviews.csv')
     
 """ print('\n\nRunning train.py!\n\n')
 # Get the training and testing dataloaders
