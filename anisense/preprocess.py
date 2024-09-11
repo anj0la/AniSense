@@ -2,17 +2,15 @@
 File: preprocess.py
 
 Author: Anjola Aina
-Date Modified: September 6th, 2024
+Date Modified: September 10th, 2024
 
 This file contains all the necessary functions used to preprocess the collected data. It includes functions to tokenize the data,
 encode the text and labels, 
 """
 import csv
 import emoji
-import json
 import pandas as pd
 from nltk.corpus import stopwords
-from nltk.tokenize import sent_tokenize, word_tokenize
 from utils.lemmatize_text import lemmatize_text
 
 def save_to_csv(cleaned_text: list[str], labels: list[str], file_path: str) -> None:
@@ -44,6 +42,8 @@ def get_labels(df: pd.DataFrame) -> list[str]:
     Returns:
         list[str]: The list of labels.
     """
+    if 'score' not in df.columns:
+        raise ValueError('Expected column "score" in input file.')
     scores = df['score']
     labels = []
     
@@ -72,7 +72,6 @@ def preprocess(file_path: str, output_file_path: str) -> None:
     df = pd.read_csv(file_path)
     if 'text' not in df.columns:
         raise ValueError('Expected column "text" in input file.')
-    
     data = df['text']
         
     # Convert the text to lowercase
