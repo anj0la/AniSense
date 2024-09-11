@@ -1,16 +1,17 @@
 import numpy as np
 import pandas as pd
 from torch.utils.data import Dataset
-from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.preprocessing import LabelEncoder
 
 class AnimeReviewDataset(Dataset):
     def __init__(self, annotations_file: str) -> None:
         self.reviews = pd.read_csv(annotations_file)
-        self.vectorizer = TfidfVectorizer()
+        self.vectorizer = CountVectorizer()
         self.vectorized_text = self.vectorizer.fit_transform(self.reviews['text'])
         self.le = LabelEncoder()
         self.encoded_labels = self.le.fit_transform(self.reviews['label'])
+        self.vocabulary = self.vectorizer.vocabulary_
 
 
     def __len__(self) -> int:
@@ -38,7 +39,7 @@ class AnimeReviewDataset(Dataset):
         return sequence, label, sequence_length
     
 
-labels = ['positive', 'negative', 'neutral']
+""" labels = ['positive', 'negative', 'neutral']
 le = LabelEncoder()
 encoded_labels = le.fit_transform(labels)
 print(type(encoded_labels))
@@ -58,3 +59,4 @@ print(dataset.vectorized_text[0].toarray().shape)
 print(dataset.vectorized_text[0].toarray().squeeze().shape)
 
 print(type(dataset.vectorized_text[0].toarray().squeeze()))
+print(type(dataset.vectorized_text[0].toarray().squeeze()[0])) """

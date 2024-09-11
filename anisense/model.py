@@ -32,12 +32,12 @@ class SentimentLSTM(nn.Module):
         lstm_hidden_dim (int): The number of features in the hidden state of the LSTM. Default is 256.
         num_lstm_layers (int): The number of recurrent layers in the LSTM. Default is 2.
         hidden_dims (list[int]): The number of hidden states in the multi-layer perceptron. The first value should be equal to the lstm_hidden_dim if the LSTM is bidirectional, otherwise, halve it. Default is [256, 128, 64].
-        output_dim (int): The size of the output layer. Default is 1.
+        output_dim (int): The size of the output layer. Default is 3.
         dropout (float): The dropout probability. Default is 0.2.
         batch_first (bool): If True, then the input and output tensors are provided as (batch, seq, feature). Default is True.
         bidirectional (bool): If True, becomes a bidirectional LSTM. Default is True.
     """
-    def __init__(self, vocab_size: int, embedding_dim: int = 64, lstm_hidden_dim: int = 256, num_lstm_layers: int = 2, hidden_dims: list[int] = [256, 128, 64], output_dim: int = 1, dropout: int = 0.2, batch_first: bool = True, bidirectional = True):
+    def __init__(self, vocab_size: int, embedding_dim: int = 64, lstm_hidden_dim: int = 256, num_lstm_layers: int = 2, hidden_dims: list[int] = [256, 128, 64], output_dim: int = 3, dropout: int = 0.2, batch_first: bool = True, bidirectional = True):
         super(SentimentLSTM, self).__init__()
         
         # Embedding layer
@@ -47,9 +47,22 @@ class SentimentLSTM(nn.Module):
         self.lstm = nn.LSTM(input_size=embedding_dim, hidden_size=lstm_hidden_dim, num_layers=num_lstm_layers, batch_first=batch_first, dropout=dropout, bidirectional=bidirectional)
         
         # MLP layer
-        self.mlp = nn.ModuleList(
-            [nn.Linear(hidden_dims[i], hidden_dims[i + 1]) if i < len(hidden_dims) - 1 else nn.Linear(hidden_dims[i], output_dim) for i in range(len(hidden_dims))])
+        if self.lstm.bidirectional:
+            self.mlp = nn.ModuleList(
+            [nn.Linear(lstm_hidden_dim * 2, hidden_dims[0])] # Accounting for the concatenation of forward and backward hidden states 
+            ).extend([nn.Linear(hidden_dims[i], hidden_dims[i + 1]) if i < len(hidden_dims) - 1 else nn.Linear(hidden_dims[i], output_dim) for i in range(len(hidden_dims))])
+        else:
+            self.mlp = nn.ModuleList(
+            [nn.Linear(lstm_hidden_dim, hidden_dims[0])] # First layer is lstm hidden 
+            ).extend([nn.Linear(hidden_dims[i], hidden_dims[i + 1]) if i < len(hidden_dims) - 1 else nn.Linear(hidden_dims[i], output_dim) for i in range(len(hidden_dims))])
         
+        # MLP layer
+        #self.mlp = nn.ModuleList(
+         #   [nn.Linear(hidden_dims[i], hidden_dims[i + 1]) if i < len(hidden_dims) - 1 else nn.Linear(hidden_dims[i], output_dim) for i in range(len(hidden_dims))])
+        
+        
+        
+        self.fc = nn.Linear(lstm_hidden_dim * 2, output_dim)
         # Activation function (for MLP layer)
         self.relu = nn.ReLU()
         
@@ -87,12 +100,23 @@ class SentimentLSTM(nn.Module):
             hidden_lstm = hidden[:,-1]
         
         # MLP layer
+        
+        # mlp layer (output is one neuron)
+        # output = self.fc(hidden_lstm)
+        
+        # return output
         output = hidden_lstm
+        
+       # print('output shape: ', output.shape)
+        
+            
         for fc in self.mlp:
             # Feed forward
             output = self.relu(fc(output))
             # Dropout layer
             output = self.dropout(output)
+            
+        # print('final output shape: ', output.shape)
         
         return output
     

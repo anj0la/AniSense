@@ -45,15 +45,15 @@ def collate_batch(batch: tuple[list[int], int, int]) -> tuple[torch.Tensor, torc
             - lengths (torch.Tensor): A tensor of shape (batch_size,) containing the original lengths 
               of the sequences.
     """
-    sequences, labels, lengths = zip(*batch)
+    encoded_sequences, encoded_labels, lengths = zip(*batch)
         
-    # Converting the encoded sequences, labels and sequence length to Tensors
-    encoded_sequences = [torch.tensor(seq, dtype=torch.long) for seq in encoded_sequences]
-    encoded_labels = torch.tensor(encoded_labels, dtype=torch.long)
+    # Converting the sequences, labels and sequence length to Tensors
+    encoded_sequences = [torch.tensor(seq, dtype=torch.int64) for seq in encoded_sequences]
+    encoded_labels = torch.tensor(encoded_labels, dtype=torch.float)
     lengths = torch.tensor(lengths, dtype=torch.long)
-    
+        
     # Padding sequences
-    padded_encoded_sequences = nn.utils.rnn.pad_sequence(encoded_sequences, batch_first=True, padding_value=0)
+    padded_encoded_sequences = nn.utils.rnn.pad_sequence(encoded_sequences, batch_first=True, padding_value=0.0)
     
     return padded_encoded_sequences, encoded_labels, lengths
 
@@ -74,16 +74,6 @@ def create_dataloaders(file_path: str, batch_size: int = 64, train_split: float 
     # Create the custom dataset
     dataset = AnimeReviewDataset(file_path)
     
-    # Open the cleaned dataset (not tokenized)
-    df = pd.read_csv('data/cleaned_reviews.csv')
-    cleaned_text = df['text']
-
-    # Learn the vocabulary from the text data and transforms the text into feature vectors based on the learned vocabulary.
-    vectorizer = TfidfVectorizer()
-    transformed_text = vectorizer.fit_transform(cleaned_text)
-    len_vocab = len(vectorizer.vocabulary_)
-
-
     # Split the dataset into training and testing sets
     train_size = int(train_split * len(dataset))
     test_size = len(dataset) - train_size
@@ -92,8 +82,8 @@ def create_dataloaders(file_path: str, batch_size: int = 64, train_split: float 
     # Create dataloaders for the training and testing sets
     train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, collate_fn=collate_batch)
     test_dataloader = DataLoader(test_dataset, batch_size=batch_size, shuffle=True, collate_fn=collate_batch)
-
-    return train_dataloader, test_dataloader
+    
+    return train_dataloader, test_dataloader, dataset
 
 def train(model: SentimentLSTM, iterator: DataLoader, optimizer: optim.SGD, device: torch.device) -> tuple[float, float]:
     """
@@ -109,20 +99,20 @@ def train(model: SentimentLSTM, iterator: DataLoader, optimizer: optim.SGD, devi
             - float: The average loss over the epoch.
             - float: The average accuracy over the epoch.
     """
-    # initialize the epoch loss and accuracy for every epoch 
+    # Initialize the epoch loss and accuracy for every epoch 
     epoch_loss = 0
     epoch_accuracy = 0
     
-    # set the model in the training phase
+    # Set the model in the training phase
     model.train()  
     
-    # going through each batch in the training iterator
+    # Go through each batch in the training iterator
     for batch in iterator:
         
         # Get the padded sequences, labels and lengths from batch 
         padded_sequences, labels, lengths = batch
-        labels = labels.type(torch.LongTensor) # casting to long
-
+        labels = labels.type(torch.LongTensor) # Casting to long
+        
         # Move input and expected label to GPU
         padded_sequences = padded_sequences.to(device)
         labels = labels.to(device)
@@ -135,13 +125,13 @@ def train(model: SentimentLSTM, iterator: DataLoader, optimizer: optim.SGD, devi
         predictions = model(padded_sequences, lengths).squeeze()
     
         # print('labels: ', labels)
-        print('predictions: ', predictions)
+        print('predictions: ', predictions)        
                 
         # Compute the loss
         loss = F.cross_entropy(predictions, labels)        
         
         # Compute metrics 
-        accuracy = accuracy_score(y_true=labels.cpu().detach().numpy(), y_pred=predicted_classes.cpu().detach().numpy()) 
+        accuracy = accuracy_score(y_true=labels.cpu().detach(), y_pred=predictions.cpu().detach()) 
         
         # Backpropagate the loss and compute the gradients
         loss.backward()       
@@ -181,6 +171,7 @@ def evaluate(model: SentimentLSTM, iterator: DataLoader, device: torch.device) -
             
             # Get the padded sequences, labels and lengths from batch 
             padded_sequences, labels, lengths = batch
+            labels = labels.type(torch.LongTensor) # Casting to long
                         
             # Move sequences, expected labels and lengths to GPU
             padded_sequences = padded_sequences.to(device)
@@ -229,10 +220,10 @@ def run_gradient_descent(model: SentimentLSTM, train_iterator: DataLoader, test_
         # Evaluate the model
         test_loss, test_accurary = evaluate(model, test_iterator, device)
         
-        # Dave the best model
+        # Save the best model
         if test_loss < best_test_loss:
             best_test_loss = test_loss
-            torch.save(obj=model.state_dict(), f=model_save_path)
+            # torch.save(obj=model, f=model_save_path)
         
         # Print train / test metrics
         print(f'\t Epoch: {epoch + 1} out of {n_epochs}')
@@ -241,32 +232,20 @@ def run_gradient_descent(model: SentimentLSTM, train_iterator: DataLoader, test_
 
 ##### Running the code #####
 
-# Open the cleaned dataset (not tokenized)
-""" df = pd.read_csv('data/cleaned_reviews.csv')
-cleaned_text = df['text']
-
-# Learn the vocabulary from the text data and transforms the text into feature vectors based on the learned vocabulary.
-vectorizer = TfidfVectorizer()
-vectorizer.fit(cleaned_text)
-len_vocab = len(vectorizer.vocabulary_) """
-
 # Create the dataloaders
     
-""" print('\n\nRunning train.py!\n\n')
+print('\n\nRunning train.py!\n\n')
 # Get the training and testing dataloaders
-train_dataloader, test_dataloader = create_dataloaders(file_path='data/cleaned_reviews.csv')
-print(train_dataloader)
-print(test_dataloader)
+train_dataloader, test_dataloader, dataset = create_dataloaders(file_path='data/test.csv')
+vocab_len = len(dataset.vocabulary)
 
 # Get the GPU device (if it exists)
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print(device)
 
-# Define the model
-vocab = load_vocabulary(path='data/vocab.json')
-model = SentimentLSTM(vocab_size=len(vocab)).to(device)
+model = SentimentLSTM(vocab_size=vocab_len).to(device)
 
 print(model)
 
 # Run Gradient Descent
-run_gradient_descent(model=model, train_iterator=train_dataloader, test_iterator=test_dataloader, device=device) """
+run_gradient_descent(model=model, train_iterator=train_dataloader, test_iterator=test_dataloader, device=device)
