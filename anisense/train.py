@@ -85,7 +85,7 @@ def create_dataloaders(file_path: str, batch_size: int = 64, train_split: float 
     
     return train_dataloader, test_dataloader, dataset
 
-def train(model: SentimentLSTM, iterator: DataLoader, optimizer: optim.SGD, device: torch.device) -> tuple[float, float]:
+def train_one_epoch(model: SentimentLSTM, iterator: DataLoader, optimizer: optim.SGD, device: torch.device) -> tuple[float, float]:
     """
     Trains the model for one epoch.
 
@@ -145,7 +145,7 @@ def train(model: SentimentLSTM, iterator: DataLoader, optimizer: optim.SGD, devi
         
     return epoch_loss / len(iterator), epoch_accuracy / len(iterator)
 
-def evaluate(model: SentimentLSTM, iterator: DataLoader, device: torch.device) -> tuple[float, float]:
+def evaluate_one_epoch(model: SentimentLSTM, iterator: DataLoader, device: torch.device) -> tuple[float, float]:
     """
     Evaluates the model on the validation/test set.
 
@@ -215,10 +215,10 @@ def run_gradient_descent(model: SentimentLSTM, train_iterator: DataLoader, test_
     for epoch in range(n_epochs):
         
         # Train the model
-        train_loss, train_accurary = train(model, train_iterator, optimizer, device)
+        train_loss, train_accurary = train_one_epoch(model, train_iterator, optimizer, device)
         
         # Evaluate the model
-        test_loss, test_accurary = evaluate(model, test_iterator, device)
+        test_loss, test_accurary = evaluate_one_epoch(model, test_iterator, device)
         
         # Save the best model
         if test_loss < best_test_loss:
@@ -229,12 +229,36 @@ def run_gradient_descent(model: SentimentLSTM, train_iterator: DataLoader, test_
         print(f'\t Epoch: {epoch + 1} out of {n_epochs}')
         print(f'\t Train Loss: {train_loss:.3f} | Train Acc: {train_accurary * 100:.2f}%')
         print(f'\t Valid Loss: {test_loss:.3f} | Valid Acc: {test_accurary * 100:.2f}%')
+        
+def train(file_path: str, train_test_split: int = 0.8, batch_size: int = 2):
+    # Create the custom dataset
+    dataset = AnimeReviewDataset(file_path)
+    
+    # Split the dataset into training and testing sets
+    train_size = int(train_test_split * len(dataset))
+    test_size = len(dataset) - train_size
+    train_dataset, test_dataset = random_split(dataset, [train_size, test_size])
+
+    # Create dataloaders for the training and testing sets
+    train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, collate_fn=collate_batch)
+    test_dataloader = DataLoader(test_dataset, batch_size=batch_size, shuffle=True, collate_fn=collate_batch)
+    
+    # Get the GPU device (if it exists)
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    print(device)
+    
+    # Create the model
+    model = SentimentLSTM(vocab_size=len(dataset.vocabulary)).to(device)
+    print(model)
+
+    # Run Gradient Descent
+    run_gradient_descent(model=model, train_iterator=train_dataloader, test_iterator=test_dataloader, device=device) 
 
 ##### Running the code #####
 
-# Create the dataloaders
+train('data/test.csv')
     
-print('\n\nRunning train.py!\n\n')
+""" print('\n\nRunning train.py!\n\n')
 # Get the training and testing dataloaders
 train_dataloader, test_dataloader, dataset = create_dataloaders(file_path='data/test.csv')
 vocab_len = len(dataset.vocabulary)
@@ -248,4 +272,4 @@ model = SentimentLSTM(vocab_size=vocab_len).to(device)
 print(model)
 
 # Run Gradient Descent
-run_gradient_descent(model=model, train_iterator=train_dataloader, test_iterator=test_dataloader, device=device)
+run_gradient_descent(model=model, train_iterator=train_dataloader, test_iterator=test_dataloader, device=device) """
