@@ -68,7 +68,11 @@ def preprocess(file_path: str, output_file_path: str) -> None:
         file_path (str): The file path containing the text data.
         output_file_path (str): The file path to put the cleaned text data into.
     """
+    # Load dataset
     df = pd.read_csv(file_path)
+    if 'text' not in df.columns:
+        raise ValueError('Expected column "text" in input file.')
+    
     data = df['text']
         
     # Convert the text to lowercase
@@ -77,24 +81,19 @@ def preprocess(file_path: str, output_file_path: str) -> None:
     # Remove Unicode characters (non-ASCII)
     data = data.apply(lambda x: x.encode('ascii', 'ignore').decode('ascii'))
     
-    # Remove punctuation and special characters
-    data = data.replace(r'[.,;:!\?"\'`]', '', regex=True)
-    data = data.replace(r'[@#\$%^&*\(\)\\/\+\-_=\\[\]\{\}<>]', '', regex=True)
-    data = data.replace(r'[‘’“”]', '', regex=True)
+    # Remove punctuation, special characters, emails and links
+    data = data.replace(r'[^\w\s]', '', regex=True)  # Removes non-alphanumeric characters except whitespace
+    data = data.replace(r'http\S+|www\.\S+', '', regex=True)  # Remove URLs
+    data = data.replace(r'\w+@\w+\.com', '', regex=True)  # Remove emails
     
     # Convert emojis to text
     data = data.apply(lambda x: emoji.demojize(x))
-    data = data.replace(r':', '', regex=True)
-        
-    # Remove links and email addresses
-    data = data.replace(r'http\S+|www\.\S+', '', regex=True)
-    data = data.replace(r'\w+@\w+\.com', '', regex=True)
+    data = data.replace(r':(.*?):', '', regex=True)
         
     # Remove stop words and apply lemmatization
     stop_words = set(stopwords.words('english'))
-    data = data.apply(lambda sentence: ' '.join(word for word in sentence.split() if word not in stop_words))
-    data = data.apply(lambda sentence: lemmatize_text(sentence))
-    
+    data = data.apply(lambda sentence: ' '.join(lemmatize_text(word) for word in sentence.split() if word not in stop_words))
+
     # Extract labels
     labels = get_labels(df)
     
