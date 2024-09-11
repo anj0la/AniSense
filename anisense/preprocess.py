@@ -15,17 +15,12 @@ from nltk.corpus import stopwords
 from nltk.tokenize import sent_tokenize, word_tokenize
 from utils.lemmatize_text import lemmatize_text
 
-def load_vocabulary(path):
-    with open(path, 'r') as f:
-        vocab = json.load(f)
-    return vocab
-
 def save_to_csv(cleaned_text: list[str], labels: list[str], file_path: str) -> None:
     """
-    Saves the text data and their labels into a CSV file.
+    Saves the cleaned text and corresponding labels into a CSV file.
         
     Args:
-    cleaned text (list[str]: The cleaned text data.
+    cleaned_text (list[str]: The cleaned text data.
     labels (list[str]): The labels for each piece of text.
     file_path (str): The path to save the CSV file.
     """
@@ -38,91 +33,6 @@ def save_to_csv(cleaned_text: list[str], labels: list[str], file_path: str) -> N
         writer.writeheader()
         writer.writerows(rows)
         csv_file.close()  
-            
-def save_vocabulary(vocab, path):
-    with open(path, 'w') as f:
-        json.dump(vocab, f)        
-
-def tokenize_data(cleaned_data: list[str]) -> tuple[list[list[str]], dict[str, int]]:
-    """
-    Tokenizes the text data into words and creates a vocabulary dictionary.
-        
-    Args:
-        cleaned_data (list[str]): The preprocessed data.
-        
-    Returns:
-        tuple: A tuple containing:
-            - list[list[str]]: The tokenized data.
-            - dict[str, int]: The vocabulary dictionary mapping tokens to indices.
-    """
-    tokenized_data = []
-    for sentence in cleaned_data:
-        tokenized_sentence = [word_tokenize(term) for term in sent_tokenize(sentence)]
-        # filtered_sentence = [[word for word in sentence if word.strip()] for sentence in tokenized_sentence]
-        tokenized_data.extend(tokenized_sentence)
-            
-    all_tokens = [token for sentence in tokenized_data for token in sentence]
-    vocab = {token: idx for idx, token in enumerate(set(all_tokens))}
-    # vocab['<UNK>'] = len(vocab) + 1
-            
-    return tokenized_data, vocab
-
-def _encode_token(tokenized_sentence: list[str], vocab: dict) -> list[int]:
-    """
-    Encodes a token vector into a list of integers using the vocabulary dictionary.
-        
-    Args:
-        token_vector (list[str]): A tokenized sentence.
-        vocab (dict): The vocabulary dictionary.
-        
-    Returns:
-        list[int]: The encoded token vector.
-    """
-    return [vocab.get(token) for token in tokenized_sentence]
-        
-def encode_tokens(tokenized_data: list[list[str]], vocab: dict) -> list[list[int]]:
-    """
-    Encodes multiple token vectors into lists of integers using the vocabulary dictionary.
-        
-    Args:
-        token_vectors (list[list[str]]): The tokenized text data.
-        vocab (dict): The vocabulary dictionary.
-        
-    Returns:
-        list[list[int]]: The encoded token vectors.
-    """
-    return [_encode_token(tokenized_sentence, vocab) for tokenized_sentence in tokenized_data]
-
-def encode_labels(labels: list[str]) -> list[int]:
-    """
-    Encodes string labels into their integer counterparts.
-    
-    The 'positive' label maps to 0, the 'negative' label maps to 1, and the 'neutral' label maps to 2.
-        
-    Args:
-        labels (list[str]): The list of labels. 
-        
-    Returns:
-        list[int]: The encoded list of labels.
-    """
-    encoded_labels = []
-    for i in range(len(labels)):
-        if labels[i] == 'positive':
-            encoded_labels.append(0)
-        elif labels[i] == 'negative':
-            encoded_labels.append(1)
-        else: # labels[i] == 'neutral
-            encoded_labels.append(2)
-    return encoded_labels
-
-def prepare_input(tokenized_data, labels, vocab):
-    # Encode tokenized data
-    encoded_sequences = encode_tokens(tokenized_data, vocab)
-    
-    # Encode labels (positive = 0, negative = 1, neutral = 2)
-    encoded_labels = encode_labels(labels)
-    
-    return encoded_sequences, encoded_labels
 
 def get_labels(df: pd.DataFrame) -> list[str]:
     """
@@ -147,24 +57,25 @@ def get_labels(df: pd.DataFrame) -> list[str]:
             
     return labels
             
-def preprocess(file_path: str) -> list[str]:
+def preprocess(file_path: str, output_file_path: str) -> None:
     """
-    Preprocesses the text data, returning the processed data.
+    Preprocesses the text data, returning the processed data and corresponding labels.
      
     This function preprocesses the text data by converting the text to lowercase and emojis to text, removing punctuation, special characters,
     links, email addresses and applying lemmatization.
         
     Args:
         file_path (str): The file path containing the text data.
-        
-    Returns:
-        list[str]: The cleaned data.
+        output_file_path (str): The file path to put the cleaned text data into.
     """
     df = pd.read_csv(file_path)
     data = df['text']
         
     # Convert the text to lowercase
     data = data.str.lower()
+    
+    # Remove Unicode characters (non-ASCII)
+    data = data.apply(lambda x: x.encode('ascii', 'ignore').decode('ascii'))
     
     # Remove punctuation and special characters
     data = data.replace(r'[.,;:!\?"\'`]', '', regex=True)
@@ -186,16 +97,20 @@ def preprocess(file_path: str) -> list[str]:
     
     # Extract labels
     labels = get_labels(df)
-            
-    return data.values, labels
+    
+    # Save data to new CSV file
+    save_to_csv(data.values, labels, output_file_path)
     
 # Running the code
+preprocess(file_path='data/reviews.csv', output_file_path='data/cleaned_reviews.csv')
+# save_to_csv(preprocessed_data, labels, 'data/cleaned_reviews.csv')
+
 """ preprocessed_data, labels = preprocess('data/reviews.csv')
 tokenized_data, vocab = tokenize_data(cleaned_data=preprocessed_data)
 
 #print(f'Data: {preprocessed_data[:5]}, Labels: {labels[:5]}')
 
-#save_to_csv(preprocessed_data, labels, 'data/cleaned_reviews.csv')
+save_to_csv(preprocessed_data, labels, 'data/cleaned_reviews.csv')
 #save_vocabulary(vocab=vocab, path='data/vocab.json')
 
 #vocab = load_vocabulary(path='data/vocab.json')

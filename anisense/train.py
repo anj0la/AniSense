@@ -230,12 +230,20 @@ def run_gradient_descent(model: SentimentLSTM, train_iterator: DataLoader, test_
         print(f'\t Train Loss: {train_loss:.3f} | Train Acc: {train_accurary * 100:.2f}%')
         print(f'\t Valid Loss: {test_loss:.3f} | Valid Acc: {test_accurary * 100:.2f}%')
         
-def train(file_path: str, train_test_split: int = 0.8, batch_size: int = 2):
+def train(file_path: str, train_split: int = 0.8, batch_size: int = 2) -> None:
+    """
+    Trains a LSTM model used for sentiment analysis.
+
+    Args:
+        file_path (str): The path to the cleaned reviews.
+        train_split (int, optional): The proportion of the dataset to include in the train split. Defaults to 0.8.
+        batch_size (int, optional): The batch size for each batch. Defaults to 2.
+    """
     # Create the custom dataset
     dataset = AnimeReviewDataset(file_path)
     
     # Split the dataset into training and testing sets
-    train_size = int(train_test_split * len(dataset))
+    train_size = int(train_split * len(dataset))
     test_size = len(dataset) - train_size
     train_dataset, test_dataset = random_split(dataset, [train_size, test_size])
 
