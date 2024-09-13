@@ -52,7 +52,8 @@ def collate_batch(batch: tuple[list[int], int, int]) -> tuple[torch.Tensor, torc
     lengths = torch.tensor(lengths, dtype=torch.long)
         
     # Padding sequences
-    padded_encoded_sequences = nn.utils.rnn.pad_sequence(encoded_sequences, batch_first=True, padding_value=0.0)
+    padded_encoded_sequences = nn.utils.rnn.pad_sequence(encoded_sequences, batch_first=True, padding_value=0)
+    padded_encoded_sequences = padded_encoded_sequences
     
     return padded_encoded_sequences, encoded_labels, lengths
 
@@ -124,7 +125,7 @@ def train_one_epoch(model: SentimentLSTM, iterator: DataLoader, optimizer: optim
         predictions = model(padded_sequences, lengths).squeeze()
     
         # print('labels: ', labels)
-        print('predictions: ', predictions)        
+        # print('predictions: ', predictions)        
                 
         # Compute the loss
         loss = F.cross_entropy(predictions, labels)        
@@ -195,7 +196,7 @@ def evaluate_one_epoch(model: SentimentLSTM, iterator: DataLoader, device: torch
         
         
 def run_gradient_descent(model: SentimentLSTM, train_iterator: DataLoader, test_iterator: DataLoader, device: torch.device, n_epochs: int = 10, 
-               lr: float = 0.01, weight_decay: float = 0.0, model_save_path: str = 'model/saved_model.pt') -> None:
+               lr: float = 0.01, weight_decay: float = 0.0, model_save_path: str = 'model/model_saved_state.pt') -> None:
     """
     Train the model for multiple epochs and evaluate on the validation set.
 
@@ -206,10 +207,11 @@ def run_gradient_descent(model: SentimentLSTM, train_iterator: DataLoader, test_
         n_epochs (int, optional): The number of epochs to train the model. Defaults to 5.
         lr (float, optional): The learning rate for the optimizer. Defaults to 0.01.
         weight_decay (float, optional): The weight decay for regularization. Defaults to 0.00.
-        model_save_path (str, optional): The path to save the best model's weights. Defaults to 'model/saved_model.pt'.
+        model_save_path (str, optional): The path to save the best model's weights. Defaults to 'model/model_saved_state.pt'.
     """
     best_test_loss = float('inf')
     optimizer = optim.SGD(params=model.parameters(), lr=lr, weight_decay=weight_decay)
+    torch.cuda.empty_cache()
 
     for epoch in range(n_epochs):
         
@@ -222,14 +224,14 @@ def run_gradient_descent(model: SentimentLSTM, train_iterator: DataLoader, test_
         # Save the best model
         if test_loss < best_test_loss:
             best_test_loss = test_loss
-            # torch.save(obj=model, f=model_save_path)
+            torch.save(obj=model.state_dict(), f=model_save_path)
         
         # Print train / test metrics
         print(f'\t Epoch: {epoch + 1} out of {n_epochs}')
         print(f'\t Train Loss: {train_loss:.3f} | Train Acc: {train_accurary * 100:.2f}%')
         print(f'\t Valid Loss: {test_loss:.3f} | Valid Acc: {test_accurary * 100:.2f}%')
         
-def train(input_file_path: str, cleaned_file_path: str, train_ratio: int = 0.8, batch_size: int = 64) -> None:
+def train(input_file_path: str, cleaned_file_path: str, train_ratio: int = 0.8, batch_size: int = 16) -> None:
     """
     Trains a LSTM model used for sentiment analysis.
 
@@ -243,7 +245,7 @@ def train(input_file_path: str, cleaned_file_path: str, train_ratio: int = 0.8, 
         preprocess(file_path=input_file_path, output_file_path=cleaned_file_path)
     
     # Create the custom dataset
-    dataset = AnimeReviewDataset(cleaned_file_path)
+    dataset = AnimeReviewDataset('data/test.csv')
     
     # Split the dataset into training and testing sets
     train_size = int(train_ratio * len(dataset))
@@ -266,8 +268,7 @@ def train(input_file_path: str, cleaned_file_path: str, train_ratio: int = 0.8, 
     run_gradient_descent(model=model, train_iterator=train_dataloader, test_iterator=test_dataloader, device=device) 
 
 ##### Running the code #####
-
-train(input_file_path='data/reviews.csv', cleaned_file_path='data/cleaned_reviews.csv')
+# train(input_file_path='data/reviews.csv', cleaned_file_path='data/cleaned_reviews.csv')
     
 """ print('\n\nRunning train.py!\n\n')
 # Get the training and testing dataloaders

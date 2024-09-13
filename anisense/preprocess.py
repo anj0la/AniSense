@@ -99,6 +99,29 @@ def preprocess(file_path: str, output_file_path: str) -> None:
     # Save data to new CSV file
     save_to_csv(data.values, labels, output_file_path)
     
+def test(df):
+    data = df['text']
+    # Convert the text to lowercase
+    data = data.str.lower()
+    
+    # Remove Unicode characters (non-ASCII)
+    data = data.apply(lambda x: x.encode('ascii', 'ignore').decode('ascii'))
+    
+    # Remove punctuation, special characters, emails and links
+    data = data.replace(r'[^\w\s]', '', regex=True)  # Removes non-alphanumeric characters except whitespace
+    data = data.replace(r'http\S+|www\.\S+', '', regex=True)  # Remove URLs
+    data = data.replace(r'\w+@\w+\.com', '', regex=True)  # Remove emails
+    
+    # Convert emojis to text
+    data = data.apply(lambda x: emoji.demojize(x))
+    data = data.replace(r':(.*?):', '', regex=True)
+        
+    # Remove stop words and apply lemmatization
+    stop_words = set(stopwords.words('english'))
+    data = data.apply(lambda sentence: ' '.join(lemmatize_text(word) for word in sentence.split() if word not in stop_words))
+    
+    return data.values
+    
 # Running the code
 # preprocess(file_path='data/reviews.csv', output_file_path='data/cleaned_reviews.csv')
 # save_to_csv(preprocessed_data, labels, 'data/cleaned_reviews.csv')

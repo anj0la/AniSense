@@ -56,12 +56,7 @@ class SentimentLSTM(nn.Module):
             [nn.Linear(lstm_hidden_dim, hidden_dims[0])] # First layer is lstm hidden 
             ).extend([nn.Linear(hidden_dims[i], hidden_dims[i + 1]) if i < len(hidden_dims) - 1 else nn.Linear(hidden_dims[i], output_dim) for i in range(len(hidden_dims))])
         
-        # MLP layer
-        #self.mlp = nn.ModuleList(
-         #   [nn.Linear(hidden_dims[i], hidden_dims[i + 1]) if i < len(hidden_dims) - 1 else nn.Linear(hidden_dims[i], output_dim) for i in range(len(hidden_dims))])
-        
-        
-        
+        # Final layer 
         self.fc = nn.Linear(lstm_hidden_dim * 2, output_dim)
         # Activation function (for MLP layer)
         self.relu = nn.ReLU()
@@ -102,9 +97,9 @@ class SentimentLSTM(nn.Module):
         # MLP layer
         
         # mlp layer (output is one neuron)
-        # output = self.fc(hidden_lstm)
+        output = self.fc(hidden_lstm)
         
-        # return output
+        return output
         output = hidden_lstm
         
        # print('output shape: ', output.shape)
