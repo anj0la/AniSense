@@ -35,10 +35,9 @@ pip install -r requirements.txt
 ### 4. Build the project by running the following code in your virtual environment.
 
 ```
-python setup.py sdist bdist_wheel
+hatch build
 ```
-
-### 5. Install the project. You can do so by using the name 'AniSense', or installing it in editable mode with -e to make changes.
+## Installing Project
 
 Example: installing the project by its name. 
 ```
