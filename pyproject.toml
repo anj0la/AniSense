@@ -1,3 +1,29 @@
 [build-system]
-requires = ['setuptools', 'wheel']
-build-backend = 'setuptools.build_meta'
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "AniSense"
+version = "1.0"
+description = "A sentiment classifier for anime reviews."
+readme = "README.md"
+readme-content-type = "text/markdown"
+requires-python = ">=3.10"
+authors = [
+    { name = "Anjola Aina", email = "anjola.aina@gmail.com" }
+]
+homepage = "https://github.com/anj0la/AniSense"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent"
+]
+dynamic = ["version"]
+
+[project.urls]
+homepage = "https://github.com/anj0la/AniSense"
+
+[tool.hatch.build.targets.sdist]
+exclude = [
+  "/.github",
+  "/docs",
+]

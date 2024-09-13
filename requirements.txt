@@ -5,6 +5,7 @@ nltk
 scikit-learn
 python-dotenv
 pytest
-wheel
 emoji
-setuptools
+hatchling
+wheel
+hatch
