@@ -2,6 +2,8 @@
 
 AniSense is a project designed to analyze anime reviews. It gathers reviews from anime discussions sites such as MyAnimeList (MAL) to learn what words contribute most to positive sentiments. The model used for sentiment analysis aims to help users understand why a specific review is positive, negative or neutral. 
 
+The dataset used to train the model can be found here: https://www.kaggle.com/datasets/marlesson/myanimelist-dataset-animes-profiles-reviews?resource=download&select=reviews.csv
+
 ## Background
 
 The model is based on an LSTM (long short-term memory) neural network, a type of RNN (recurrent neural network) that can handle long dependencies in sequences and tackles the vanishing gradient problem.
