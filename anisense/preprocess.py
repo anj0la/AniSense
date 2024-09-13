@@ -56,50 +56,10 @@ def get_labels(df: pd.DataFrame) -> list[str]:
             labels.append('negative')
             
     return labels
-            
-def preprocess(file_path: str, output_file_path: str) -> None:
-    """
-    Preprocesses the text data, returning the processed data and corresponding labels.
-     
-    This function preprocesses the text data by converting the text to lowercase and emojis to text, removing punctuation, special characters,
-    links, email addresses and applying lemmatization.
-        
-    Args:
-        file_path (str): The file path containing the text data.
-        output_file_path (str): The file path to put the cleaned text data into.
-    """
-    # Load dataset
-    df = pd.read_csv(file_path)
+
+def clean_text(df):
     if 'text' not in df.columns:
         raise ValueError('Expected column "text" in input file.')
-    data = df['text']
-        
-    # Convert the text to lowercase
-    data = data.str.lower()
-    
-    # Remove Unicode characters (non-ASCII)
-    data = data.apply(lambda x: x.encode('ascii', 'ignore').decode('ascii'))
-    
-    # Remove punctuation, special characters, emails and links
-    data = data.replace(r'[^\w\s]', '', regex=True)  # Removes non-alphanumeric characters except whitespace
-    data = data.replace(r'http\S+|www\.\S+', '', regex=True)  # Remove URLs
-    data = data.replace(r'\w+@\w+\.com', '', regex=True)  # Remove emails
-    
-    # Convert emojis to text
-    data = data.apply(lambda x: emoji.demojize(x))
-    data = data.replace(r':(.*?):', '', regex=True)
-        
-    # Remove stop words and apply lemmatization
-    stop_words = set(stopwords.words('english'))
-    data = data.apply(lambda sentence: ' '.join(lemmatize_text(word) for word in sentence.split() if word not in stop_words))
-
-    # Extract labels
-    labels = get_labels(df)
-    
-    # Save data to new CSV file
-    save_to_csv(data.values, labels, output_file_path)
-    
-def test(df):
     data = df['text']
     # Convert the text to lowercase
     data = data.str.lower()
@@ -121,6 +81,29 @@ def test(df):
     data = data.apply(lambda sentence: ' '.join(lemmatize_text(word) for word in sentence.split() if word not in stop_words))
     
     return data.values
+            
+def preprocess(file_path: str, output_file_path: str) -> None:
+    """
+    Preprocesses the text data, returning the processed data and corresponding labels.
+     
+    This function preprocesses the text data by converting the text to lowercase and emojis to text, removing punctuation, special characters,
+    links, email addresses and applying lemmatization.
+        
+    Args:
+        file_path (str): The file path containing the text data.
+        output_file_path (str): The file path to put the cleaned text data into.
+    """
+    # Load dataset
+    df = pd.read_csv(file_path)
+    
+    # Clean text
+    cleaned_text = clean_text(df)
+    
+    # Extract labels
+    labels = get_labels(df)
+    
+    # Save data to new CSV file
+    save_to_csv(cleaned_text, labels, output_file_path)
     
 # Running the code
 # preprocess(file_path='data/reviews.csv', output_file_path='data/cleaned_reviews.csv')
