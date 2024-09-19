@@ -57,7 +57,7 @@ def collate_batch(batch: tuple[list[int], int, int]) -> tuple[torch.Tensor, torc
     
     return padded_encoded_sequences, encoded_labels, lengths
 
-def create_dataloaders(file_path: str, batch_size: int = 64, train_split: float = 0.8) -> tuple[DataLoader, DataLoader]:
+def create_dataloaders(file_path: str, batch_size: int, train_split: float) -> tuple[DataLoader, DataLoader]:
     """
     Creates custom datasets and dataloaders for training and testing.
 
@@ -218,6 +218,7 @@ def train(input_file_path: str, cleaned_file_path: str, train_ratio: int = 0.8, 
     
     # Get the GPU device (if it exists)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    # device = torch.device('cpu')
     print(device)
     
     # Create the model
