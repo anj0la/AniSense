@@ -74,6 +74,9 @@ def create_dataloaders(file_path: str, batch_size: int = 64, train_split: float 
     # Create the custom dataset
     dataset = AnimeReviewDataset(file_path)
     
+    # Printing the length of the dataset for testing purposes
+    print(len(dataset))
+    
     # Split the dataset into training and testing sets
     train_size = int(train_split * len(dataset))
     test_size = len(dataset) - train_size
@@ -194,44 +197,8 @@ def evaluate_one_epoch(model: SentimentLSTM, iterator: DataLoader, device: torch
     
     return epoch_loss / len(iterator), epoch_accuracy / len(iterator)
         
-        
-def run_gradient_descent(model: SentimentLSTM, train_iterator: DataLoader, test_iterator: DataLoader, device: torch.device, n_epochs: int = 10, 
+def train(input_file_path: str, cleaned_file_path: str, train_ratio: int = 0.8, batch_size: int = 16, n_epochs: int = 10, 
                lr: float = 0.01, weight_decay: float = 0.0, model_save_path: str = 'model/model_saved_state.pt') -> None:
-    """
-    Train the model for multiple epochs and evaluate on the validation set.
-
-    Args:
-        model (SentimentLSTM): The model to be trained.
-        train_iterator (DataLoader): The DataLoader containing the training data.
-        valid_iterator (DataLoader): The DataLoader containing the validation data.
-        n_epochs (int, optional): The number of epochs to train the model. Defaults to 5.
-        lr (float, optional): The learning rate for the optimizer. Defaults to 0.01.
-        weight_decay (float, optional): The weight decay for regularization. Defaults to 0.00.
-        model_save_path (str, optional): The path to save the best model's weights. Defaults to 'model/model_saved_state.pt'.
-    """
-    best_test_loss = float('inf')
-    optimizer = optim.SGD(params=model.parameters(), lr=lr, weight_decay=weight_decay)
-    torch.cuda.empty_cache()
-
-    for epoch in range(n_epochs):
-        
-        # Train the model
-        train_loss, train_accurary = train_one_epoch(model, train_iterator, optimizer, device)
-        
-        # Evaluate the model
-        test_loss, test_accurary = evaluate_one_epoch(model, test_iterator, device)
-        
-        # Save the best model
-        if test_loss < best_test_loss:
-            best_test_loss = test_loss
-            torch.save(obj=model.state_dict(), f=model_save_path)
-        
-        # Print train / test metrics
-        print(f'\t Epoch: {epoch + 1} out of {n_epochs}')
-        print(f'\t Train Loss: {train_loss:.3f} | Train Acc: {train_accurary * 100:.2f}%')
-        print(f'\t Valid Loss: {test_loss:.3f} | Valid Acc: {test_accurary * 100:.2f}%')
-        
-def train(input_file_path: str, cleaned_file_path: str, train_ratio: int = 0.8, batch_size: int = 16) -> None:
     """
     Trains a LSTM model used for sentiment analysis.
 
@@ -243,18 +210,11 @@ def train(input_file_path: str, cleaned_file_path: str, train_ratio: int = 0.8, 
     # Preprocess the file (if not already preprocessed)
     if not os.path.exists(cleaned_file_path):
         preprocess(file_path=input_file_path, output_file_path=cleaned_file_path)
-    
-    # Create the custom dataset
-    dataset = AnimeReviewDataset('data/test.csv')
-    
-    # Split the dataset into training and testing sets
-    train_size = int(train_ratio * len(dataset))
-    test_size = len(dataset) - train_size
-    train_dataset, test_dataset = random_split(dataset, [train_size, test_size])
-
-    # Create dataloaders for the training and testing sets
-    train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, collate_fn=collate_batch)
-    test_dataloader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, collate_fn=collate_batch)
+        
+    # Get the training and testing dataloaders
+    train_dataloader, test_dataloader, dataset = create_dataloaders(
+        file_path=cleaned_file_path, batch_size=batch_size, train_split=train_ratio
+    )
     
     # Get the GPU device (if it exists)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -263,25 +223,32 @@ def train(input_file_path: str, cleaned_file_path: str, train_ratio: int = 0.8, 
     # Create the model
     model = SentimentLSTM(vocab_size=len(dataset.vocabulary)).to(device)
     print(model)
+    
+    # Setup the optimizer
+    optimizer = optim.SGD(params=model.parameters(), lr=lr, weight_decay=weight_decay)
+    
+    # Initalizing best loss and clearing GPU cache
+    best_test_loss = float('inf')
+    torch.cuda.empty_cache()
 
-    # Run Gradient Descent
-    run_gradient_descent(model=model, train_iterator=train_dataloader, test_iterator=test_dataloader, device=device) 
+    # Training / testing model
+    for epoch in range(n_epochs):
+        
+        # Train the model
+        train_loss, train_accurary = train_one_epoch(model, train_dataloader, optimizer, device)
+        
+        # Evaluate the model
+        test_loss, test_accurary = evaluate_one_epoch(model, test_dataloader, device)
+        
+        # Save the best model
+        if test_loss < best_test_loss:
+            best_test_loss = test_loss
+            torch.save(obj=model.state_dict(), f=model_save_path)
+        
+        # Print train / test metrics
+        print(f'\t Epoch: {epoch + 1} out of {n_epochs}')
+        print(f'\t Train Loss: {train_loss:.3f} | Train Acc: {train_accurary * 100:.2f}%')
+        print(f'\t Valid Loss: {test_loss:.3f} | Valid Acc: {test_accurary * 100:.2f}%')
 
 ##### Running the code #####
-# train(input_file_path='data/reviews.csv', cleaned_file_path='data/cleaned_reviews.csv')
-    
-""" print('\n\nRunning train.py!\n\n')
-# Get the training and testing dataloaders
-train_dataloader, test_dataloader, dataset = create_dataloaders(file_path='data/test.csv')
-vocab_len = len(dataset.vocabulary)
-
-# Get the GPU device (if it exists)
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-print(device)
-
-model = SentimentLSTM(vocab_size=vocab_len).to(device)
-
-print(model)
-
-# Run Gradient Descent
-run_gradient_descent(model=model, train_iterator=train_dataloader, test_iterator=test_dataloader, device=device) """
+train(input_file_path='data/new_reviews.csv', cleaned_file_path='data/new_cleaned_reviews.csv')

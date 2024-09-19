@@ -5,14 +5,18 @@ from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.preprocessing import LabelEncoder
 
 class AnimeReviewDataset(Dataset):
-    def __init__(self, annotations_file: str) -> None:
+    def __init__(self, annotations_file: str, subset_size: float = 0.1) -> None:
         self.reviews = pd.read_csv(annotations_file)
+        
+        # Randomly sample a subset of the data
+        self.reviews = self.reviews.sample(frac=subset_size, random_state=42).reset_index(drop=True)
+
+        # Vectorize and encode on the sampled subset
         self.vectorizer = CountVectorizer()
-        self.vectorized_text = self.vectorizer.fit_transform(self.reviews['text'])
+        self.vectorized_text = self.vectorizer.fit_transform(self.reviews['review'])
         self.le = LabelEncoder()
         self.encoded_labels = self.le.fit_transform(self.reviews['label'])
         self.vocabulary = self.vectorizer.vocabulary_
-
 
     def __len__(self) -> int:
         return len(self.reviews)

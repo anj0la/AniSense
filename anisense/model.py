@@ -78,11 +78,18 @@ class SentimentLSTM(nn.Module):
         # Embedding layer
         embeddings = self.embedding(input) 
         
+        # Print the input shape and embedding output shape
+        print("Input tensor shape (batch size, sequence length):", input.shape)
+        print("Embedding output shape:", embeddings.shape)
+        
         # Temporarily moving lengths to CPU
         input_text_lengths_cpu = input_lengths.cpu()
         
         # Packed embeddings
         packed_embeddings = nn.utils.rnn.pack_padded_sequence(input=embeddings, lengths=input_text_lengths_cpu, batch_first=True, enforce_sorted=False)
+        
+        # Print the shape of packed embeddings
+        print("Packed embeddings shape:", packed_embeddings.data.shape)
         
         # LSTM layer (we only care about the last hidden layer, not the packed output or cell)
         _, (hidden, _) = self.lstm(packed_embeddings)
@@ -95,6 +102,9 @@ class SentimentLSTM(nn.Module):
             hidden_lstm = hidden[:,-1]
         
         # MLP layer
+        
+        # Print the shape of the last hidden state
+        print("Hidden LSTM state shape:", hidden_lstm.shape)
         
         # mlp layer (output is one neuron)
         output = self.fc(hidden_lstm)

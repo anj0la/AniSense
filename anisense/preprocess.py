@@ -22,10 +22,10 @@ def save_to_csv(cleaned_text: list[str], labels: list[str], file_path: str) -> N
     labels (list[str]): The labels for each piece of text.
     file_path (str): The path to save the CSV file.
     """
-    fields = ['text', 'label']
+    fields = ['review', 'label']
     rows = []
     for sentence, label in zip(cleaned_text, labels):
-        rows.append({'text': sentence, 'label': label})
+        rows.append({'review': sentence, 'label': label})
     with open(file=file_path, mode='w', encoding='utf-8') as csv_file:
         writer = csv.DictWriter(csv_file, fieldnames=fields)
         writer.writeheader()
@@ -42,9 +42,9 @@ def get_labels(df: pd.DataFrame) -> list[str]:
     Returns:
         list[str]: The list of labels.
     """
-    if 'score' not in df.columns:
-        raise ValueError('Expected column "score" in input file.')
-    scores = df['score']
+    if 'overallRating' not in df.columns:
+        raise ValueError('Expected column "overallRating" in input file.')
+    scores = df['overallRating']
     labels = []
     
     for score in scores:
@@ -57,10 +57,10 @@ def get_labels(df: pd.DataFrame) -> list[str]:
             
     return labels
 
-def clean_text(df):
-    if 'text' not in df.columns:
-        raise ValueError('Expected column "text" in input file.')
-    data = df['text']
+def clean_review(df):
+    if 'review' not in df.columns:
+        raise ValueError('Expected column "review" in input file.')
+    data = df['review']
     # Convert the text to lowercase
     data = data.str.lower()
     
@@ -97,7 +97,7 @@ def preprocess(file_path: str, output_file_path: str) -> None:
     df = pd.read_csv(file_path)
     
     # Clean text
-    cleaned_text = clean_text(df)
+    cleaned_text = clean_review(df)
     
     # Extract labels
     labels = get_labels(df)
