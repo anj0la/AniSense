@@ -2,12 +2,14 @@
 File: train.py
 
 Author: Anjola Aina
-Date Modified: September 6th, 2024
+Date Modified: October 10th, 2024
 
 This file contains all the necessary functions used to train the model.
 Only run this file if you want to add more training examples to improve the performance of the model.
 Otherwise, use the pretrained model in the 'models' folder, called model_saved_weights.pt.
 """
+import joblib
+import matplotlib.pyplot as plt
 import os
 import torch
 import torch.nn as nn
@@ -196,9 +198,35 @@ def evaluate_one_epoch(model: SentimentLSTM, iterator: DataLoader, device: torch
             
     
     return epoch_loss / len(iterator), epoch_accuracy / len(iterator)
+
+def _plot_graph(epochs, train_losses, test_losses):
+    """
+    This function plots a graph that visualizes how the training and testing losses decrease over the epochs.
+    
+    Args:
+        epochs (int): The number of epochs.
+        train_losses (list): The training losses per epoch.
+        test_losses (list): The testing losses per epoch.
+    """
+    fig, ax = plt.subplots()
+    
+    # Plot train and test losses
+    ax.plot([i for i in range(1, epochs + 1)], train_losses, label='Training Loss', color='blue')
+    ax.plot([i for i in range(1, epochs + 1)], test_losses, label='Testing Loss', color='orange')
+    
+    # Labels and title
+    ax.set_xlabel('Number of Epochs')
+    ax.set_ylabel('Loss')
+    ax.set_title('Training and Testing Loss as a Function of Epochs')
+    
+    # Add a legend
+    ax.legend()
+    
+    # Show the plot
+    plt.show()
         
 def train(input_file_path: str, cleaned_file_path: str, train_ratio: int = 0.8, batch_size: int = 16, n_epochs: int = 10, 
-               lr: float = 0.01, weight_decay: float = 0.0, model_save_path: str = 'model/model_saved_state.pt') -> None:
+               lr: float = 0.05, weight_decay: float = 0.0, model_save_path: str = 'model/model_saved_state.pt') -> None:
     """
     Trains a LSTM model used for sentiment analysis.
 
@@ -216,6 +244,10 @@ def train(input_file_path: str, cleaned_file_path: str, train_ratio: int = 0.8, 
         file_path=cleaned_file_path, batch_size=batch_size, train_split=train_ratio
     )
     
+    # Save the vectorizer and label encoder to disk
+    joblib.dump(dataset.vectorizer, 'model/vectorizer.pkl')
+    joblib.dump(dataset.le, 'model/label_encoder.pkl')
+    
     # Get the GPU device (if it exists)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     # device = torch.device('cpu')
@@ -227,6 +259,10 @@ def train(input_file_path: str, cleaned_file_path: str, train_ratio: int = 0.8, 
     
     # Setup the optimizer
     optimizer = optim.SGD(params=model.parameters(), lr=lr, weight_decay=weight_decay)
+
+    # Collecting total loss and epochs
+    train_losses = []
+    test_losses = []
     
     # Initalizing best loss and clearing GPU cache
     best_test_loss = float('inf')
@@ -237,9 +273,11 @@ def train(input_file_path: str, cleaned_file_path: str, train_ratio: int = 0.8, 
         
         # Train the model
         train_loss, train_accurary = train_one_epoch(model, train_dataloader, optimizer, device)
+        train_losses.append(train_loss)
         
         # Evaluate the model
         test_loss, test_accurary = evaluate_one_epoch(model, test_dataloader, device)
+        test_losses.append(test_loss)
         
         # Save the best model
         if test_loss < best_test_loss:
@@ -250,6 +288,8 @@ def train(input_file_path: str, cleaned_file_path: str, train_ratio: int = 0.8, 
         print(f'\t Epoch: {epoch + 1} out of {n_epochs}')
         print(f'\t Train Loss: {train_loss:.3f} | Train Acc: {train_accurary * 100:.2f}%')
         print(f'\t Valid Loss: {test_loss:.3f} | Valid Acc: {test_accurary * 100:.2f}%')
+        
+    _plot_graph(n_epochs, train_losses, test_losses)
 
 ##### Running the code #####
 train(input_file_path='data/new_reviews.csv', cleaned_file_path='data/new_cleaned_reviews.csv')

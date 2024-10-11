@@ -5,7 +5,7 @@ from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.preprocessing import LabelEncoder
 
 class AnimeReviewDataset(Dataset):
-    def __init__(self, annotations_file: str, subset_size: float = 0.1) -> None:
+    def __init__(self, annotations_file: str, subset_size: float = 0.01) -> None:
         self.reviews = pd.read_csv(annotations_file)
         
         # Randomly sample a subset of the data

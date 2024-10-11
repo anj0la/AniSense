@@ -9,3 +9,4 @@ emoji
 hatchling
 wheel
 hatch
+matplotlib
