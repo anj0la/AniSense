@@ -22,10 +22,10 @@ def save_to_csv(cleaned_text: list[str], labels: list[str], file_path: str) -> N
     labels (list[str]): The labels for each piece of text.
     file_path (str): The path to save the CSV file.
     """
-    fields = ['review', 'label']
+    fields = ['review', 'sentiment']
     rows = []
     for sentence, label in zip(cleaned_text, labels):
-        rows.append({'review': sentence, 'label': label})
+        rows.append({'review': sentence, 'sentiment': label})
     with open(file=file_path, mode='w', encoding='utf-8') as csv_file:
         writer = csv.DictWriter(csv_file, fieldnames=fields)
         writer.writeheader()

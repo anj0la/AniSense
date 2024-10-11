@@ -6,16 +6,11 @@ from sklearn.preprocessing import LabelEncoder
 
 class AnimeReviewDataset(Dataset):
     def __init__(self, annotations_file: str, subset_size: float = 0.01) -> None:
-        self.reviews = pd.read_csv(annotations_file)
-        
-        # Randomly sample a subset of the data
-        self.reviews = self.reviews.sample(frac=subset_size, random_state=42).reset_index(drop=True)
-
-        # Vectorize and encode on the sampled subset
+        self.reviews = self._sample_reviews(annotations_file, subset_size)
         self.vectorizer = CountVectorizer()
         self.vectorized_text = self.vectorizer.fit_transform(self.reviews['review'])
         self.le = LabelEncoder()
-        self.encoded_labels = self.le.fit_transform(self.reviews['label'])
+        self.encoded_labels = self.le.fit_transform(self.reviews['sentiment'])
         self.vocabulary = self.vectorizer.vocabulary_
 
     def __len__(self) -> int:
@@ -41,6 +36,30 @@ class AnimeReviewDataset(Dataset):
         label = self.encoded_labels[idx]
         sequence_length = len(sequence)
         return sequence, label, sequence_length
+    
+    def _sample_reviews(self, annotations_file: str, subset_size: float) -> pd.DataFrame:
+        reviews = pd.read_csv(annotations_file)
+        
+        # Define the target total size
+        target_total_size = subset_size * len(self.reviews)
+
+        # Determine the number of samples for each sentiment category
+        positive_size = int(target_total_size * 0.34)  # e.g., 34% positive
+        neutral_size = int(target_total_size * 0.32)   # e.g., 32% neutral
+        negative_size = int(target_total_size * 0.34)  # e.g., 34% negative
+
+        # Sample from each group
+        positive_samples = reviews[self.reviews['sentiment'] == 'positive'].sample(n=positive_size, random_state=42)
+        neutral_samples = reviews[self.reviews['sentiment'] == 'neutral'].sample(n=neutral_size, random_state=42)
+        negative_samples = reviews[self.reviews['sentiment'] == 'negative'].sample(n=negative_size, random_state=42)
+
+        # Concatenate the samples into one DataFrame
+        stratified_sample = pd.concat([positive_samples, neutral_samples, negative_samples])
+
+        # Shuffle the DataFrame
+        stratified_sample = stratified_sample.sample(frac=1, random_state=42).reset_index(drop=True)
+        
+        return stratified_sample
     
 
 """ labels = ['positive', 'negative', 'neutral']
