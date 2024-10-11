@@ -292,4 +292,4 @@ def train(input_file_path: str, cleaned_file_path: str, train_ratio: int = 0.8, 
     _plot_graph(n_epochs, train_losses, test_losses)
 
 ##### Running the code #####
-train(input_file_path='data/new_reviews.csv', cleaned_file_path='data/new_cleaned_reviews.csv')
+train(input_file_path='data/reviews.csv', cleaned_file_path='data/cleaned_reviews.csv')

@@ -48,11 +48,11 @@ def get_labels(df: pd.DataFrame) -> list[str]:
     labels = []
     
     for score in scores:
-        if score >= 7: # Scores ranging from 7 to 10 are positive
+        if score >= 9: # Scores ranging from 9 to 10 are positive
             labels.append('positive')
-        elif score < 7 and score >= 5: # Scores ranging from 5 to 6 are neutral
+        elif score < 9 and score >= 7: # Scores ranging from 7 to 8 are neutral
             labels.append('neutral')
-        else: # Scores ranging from 1 to 4 are negative
+        else: # Scores ranging from 1 to 6 are negative
             labels.append('negative')
             
     return labels
