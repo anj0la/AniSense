@@ -62,7 +62,7 @@ class SentimentLSTM(nn.Module):
         self.relu = nn.ReLU()
         
         # Dropout layer
-        self.dropout = nn.Dropout(dropout)
+        # self.dropout = nn.Dropout(dropout)
                         
     def forward(self, input, input_lengths):
         """
@@ -108,20 +108,6 @@ class SentimentLSTM(nn.Module):
         
         # mlp layer (output is one neuron)
         output = self.fc(hidden_lstm)
-        
-        return output
-        output = hidden_lstm
-        
-       # print('output shape: ', output.shape)
-        
-            
-        for fc in self.mlp:
-            # Feed forward
-            output = self.relu(fc(output))
-            # Dropout layer
-            output = self.dropout(output)
-            
-        # print('final output shape: ', output.shape)
         
         return output
     

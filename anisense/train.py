@@ -85,8 +85,8 @@ def create_dataloaders(file_path: str, batch_size: int, train_split: float) -> t
     train_dataset, test_dataset = random_split(dataset, [train_size, test_size])
 
     # Create dataloaders for the training and testing sets
-    train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, collate_fn=collate_batch)
-    test_dataloader = DataLoader(test_dataset, batch_size=batch_size, shuffle=True, collate_fn=collate_batch)
+    train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, collate_fn=collate_batch, drop_last=True)
+    test_dataloader = DataLoader(test_dataset, batch_size=batch_size, shuffle=True, collate_fn=collate_batch, drop_last=True)
     
     return train_dataloader, test_dataloader, dataset
 
@@ -127,7 +127,8 @@ def train_one_epoch(model: SentimentLSTM, iterator: DataLoader, optimizer: optim
         optimizer.zero_grad()   
                 
         # Get expected predictions
-        predictions = model(padded_sequences, lengths).squeeze()
+        predictions = model(padded_sequences, lengths)
+        predicted_labels = torch.argmax(predictions, dim=1)  # Get predicted labels
     
         # print('labels: ', labels)
         # print('predictions: ', predictions)        
@@ -136,7 +137,7 @@ def train_one_epoch(model: SentimentLSTM, iterator: DataLoader, optimizer: optim
         loss = F.cross_entropy(predictions, labels)        
         
         # Compute metrics 
-        accuracy = accuracy_score(y_true=labels.cpu().detach(), y_pred=predictions.cpu().detach()) 
+        accuracy = accuracy_score(y_true=labels.cpu().detach(), y_pred=predicted_labels.cpu().detach()) 
         
         # Backpropagate the loss and compute the gradients
         loss.backward()       
@@ -184,13 +185,14 @@ def evaluate_one_epoch(model: SentimentLSTM, iterator: DataLoader, device: torch
             lengths = lengths.to(device)
             
              # Get expected predictions
-            predictions = model(padded_sequences, lengths).squeeze()
+            predictions = model(padded_sequences, lengths)
+            predicted_labels = torch.argmax(predictions, dim=1)  # Get predicted labels
             
             # Compute the loss
             loss = F.cross_entropy(predictions, labels)        
             
             # Compute metrics 
-            accuracy = accuracy_score(y_true=labels.cpu(), y_pred=predictions.cpu())
+            accuracy = accuracy_score(y_true=labels.cpu(), y_pred=predicted_labels.cpu())
             
             # Keep track of metrics
             epoch_loss += loss.item()
@@ -226,7 +228,7 @@ def _plot_graph(epochs, train_losses, test_losses):
     plt.show()
         
 def train(input_file_path: str, cleaned_file_path: str, train_ratio: int = 0.8, batch_size: int = 16, n_epochs: int = 10, 
-               lr: float = 0.05, weight_decay: float = 0.0, model_save_path: str = 'model/model_saved_state.pt') -> None:
+               lr: float = 0.2, weight_decay: float = 0.0, model_save_path: str = 'model/model_saved_state.pt') -> None:
     """
     Trains a LSTM model used for sentiment analysis.
 
@@ -258,7 +260,7 @@ def train(input_file_path: str, cleaned_file_path: str, train_ratio: int = 0.8, 
     print(model)
     
     # Setup the optimizer
-    optimizer = optim.SGD(params=model.parameters(), lr=lr, weight_decay=weight_decay)
+    optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
 
     # Collecting total loss and epochs
     train_losses = []
