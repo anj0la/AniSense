@@ -48,11 +48,11 @@ def get_labels(df: pd.DataFrame) -> list[str]:
     labels = []
     
     for score in scores:
-        if score >= 9: # Scores ranging from 9 to 10 are positive
+        if score >= 8: # Scores ranging from 8 to 10 are positive
             labels.append('positive')
-        elif score < 9 and score >= 6: # Scores ranging from 6 to 8 are neutral
+        elif score < 8 and score >= 5: # Scores ranging from 5 to 7 are neutral
             labels.append('neutral')
-        else: # Scores ranging from 1 to 5 are negative
+        else: # Scores ranging from 1 to 4 are negative
             labels.append('negative')
             
     return labels
@@ -100,10 +100,10 @@ def preprocess(file_path: str, output_file_path: str) -> None:
     cleaned_text = clean_review(df)
     
     # Extract labels
-    labels = get_labels(df)
+    # labels = get_labels(df)
     
     # Save data to new CSV file
-    save_to_csv(cleaned_text, labels, output_file_path)
+    save_to_csv(cleaned_text, df['sentiment'], output_file_path)
     
 # Running the code
 # preprocess(file_path='data/reviews.csv', output_file_path='data/cleaned_reviews.csv')

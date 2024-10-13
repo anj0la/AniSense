@@ -42,6 +42,7 @@ class AnimeReviewDataset(Dataset):
         
         # Define the target total size
         target_total_size = subset_size * len(reviews)
+        print(target_total_size)
 
         # Determine the number of samples for each sentiment category
         positive_size = int(target_total_size * 0.34)  # e.g., 34% positive
@@ -52,7 +53,11 @@ class AnimeReviewDataset(Dataset):
         positive_samples = reviews[reviews['sentiment'] == 'positive'].sample(n=positive_size, random_state=42)
         neutral_samples = reviews[reviews['sentiment'] == 'neutral'].sample(n=neutral_size, random_state=42)
         negative_samples = reviews[reviews['sentiment'] == 'negative'].sample(n=negative_size, random_state=42)
-
+        
+        print('positive: ', positive_samples['review'].array[0])
+        print('\n\nneutral: ', neutral_samples['review'].array[0])
+        print('\n\nnegative: ', negative_samples['review'].array[0])
+        
         # Concatenate the samples into one DataFrame
         stratified_sample = pd.concat([positive_samples, neutral_samples, negative_samples])
 

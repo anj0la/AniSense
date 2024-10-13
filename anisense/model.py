@@ -37,11 +37,11 @@ class SentimentLSTM(nn.Module):
         batch_first (bool): If True, then the input and output tensors are provided as (batch, seq, feature). Default is True.
         bidirectional (bool): If True, becomes a bidirectional LSTM. Default is True.
     """
-    def __init__(self, vocab_size: int, embedding_dim: int = 64, lstm_hidden_dim: int = 256, num_lstm_layers: int = 2, hidden_dims: list[int] = [256, 128, 64], output_dim: int = 3, dropout: int = 0.2, batch_first: bool = True, bidirectional = True):
+    def __init__(self, vocab_size: int, embedding_dim: int = 256, lstm_hidden_dim: int = 64, num_lstm_layers: int = 1, hidden_dims: list[int] = [64, 32], output_dim: int = 3, dropout: float = 0.0, batch_first: bool = True, bidirectional = True):
         super(SentimentLSTM, self).__init__()
         
         # Embedding layer
-        self.embedding = nn.Embedding(vocab_size, embedding_dim)
+        self.embedding = nn.Embedding(vocab_size, embedding_dim, padding_idx=0)
         
         # Long-term short memory (LSTM) layer(s)
         self.lstm = nn.LSTM(input_size=embedding_dim, hidden_size=lstm_hidden_dim, num_layers=num_lstm_layers, batch_first=batch_first, dropout=dropout, bidirectional=bidirectional)
@@ -57,12 +57,13 @@ class SentimentLSTM(nn.Module):
             ).extend([nn.Linear(hidden_dims[i], hidden_dims[i + 1]) if i < len(hidden_dims) - 1 else nn.Linear(hidden_dims[i], output_dim) for i in range(len(hidden_dims))])
         
         # Final layer 
-        self.fc = nn.Linear(lstm_hidden_dim * 2, output_dim)
+        # self.fc = nn.Linear(lstm_hidden_dim * 2, output_dim)
         # Activation function (for MLP layer)
         self.relu = nn.ReLU()
         
+        
         # Dropout layer
-        # self.dropout = nn.Dropout(dropout)
+        self.dropout = nn.Dropout(dropout)
                         
     def forward(self, input, input_lengths):
         """
@@ -82,11 +83,8 @@ class SentimentLSTM(nn.Module):
         # print("Input tensor shape (batch size, sequence length):", input.shape)
         # print("Embedding output shape:", embeddings.shape)
         
-        # Temporarily moving lengths to CPU
-        input_text_lengths_cpu = input_lengths.cpu()
-        
         # Packed embeddings
-        packed_embeddings = nn.utils.rnn.pack_padded_sequence(input=embeddings, lengths=input_text_lengths_cpu, batch_first=True, enforce_sorted=False)
+        packed_embeddings = nn.utils.rnn.pack_padded_sequence(input=embeddings, lengths=input_lengths.cpu(), batch_first=True, enforce_sorted=False)
         
         # Print the shape of packed embeddings
         # print("Packed embeddings shape:", packed_embeddings.data.shape)
@@ -101,15 +99,25 @@ class SentimentLSTM(nn.Module):
         else:
             hidden_lstm = hidden[:,-1]
         
-        # MLP layer
         
         # Print the shape of the last hidden state
         # print("Hidden LSTM state shape:", hidden_lstm.shape)
         
         # mlp layer (output is one neuron)
-        output = self.fc(hidden_lstm)
+        #output = self.fc(hidden_lstm)
+        
+        # return output
+        
+        # MLP layer
+        output = hidden_lstm
+        
+        for fc in self.mlp:
+            # Feed forward
+            output = self.relu(fc(output))
+            # Dropout layer
+            # output = self.dropout(output)
+            
+        # print('final output shape: ', output.shape)
         
         return output
     
-# Seeing the model layers
-# print(SentimentLSTM(1000))
